@@ -1,42 +1,71 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import type { User } from "@/components/auth-wrapper"
 import { ArrowLeft, ChevronRight, UserIcon, Lock, BookOpen } from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"
 
 type LoginFormProps = {
-  onLogin: (userData: User) => void
+  onLogin: (userData: { email: string; password: string }) => void
   onBackToLanding: () => void
   onSignupClick: () => void
 }
 
 export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: LoginFormProps) {
-  const [studentId, setStudentId] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
 
-    if (studentId.trim() === "" || password.trim() === "") {
-      setError("Please enter both student ID and password")
+    if (email.trim() === "" || password.trim() === "") {
+      setError("Please enter both email and password")
       return
     }
 
-    // In a real app, this would be an API call to authenticate the user
-    // For demo purposes, we'll just simulate a successful login
-    const mockUser: User = {
-      id: "user123",
-      nickname: "Demo User",
-      studentId: studentId,
-      studyHours: 2,
-      flashcardTarget: 20,
-      completedOnboarding: true,
-    }
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    onLogin(mockUser)
+      if (signInError || !data.session) {
+        setError(signInError?.message || "Login failed")
+        return
+      }
+
+      const user = data.user
+
+      // Fetch additional profile info from your 'profiles' table
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError || !profile) {
+        setError(profileError?.message || "Failed to fetch user profile")
+        return
+      }
+
+      const loggedInUser: User = {
+        id: user.id,
+        nickname: profile.nickname,
+        email: user.email || undefined,
+        studyhours: profile.studyhours,
+        flashcardtarget: profile.flashcardtarget,
+        completedonboarding: profile.completedonboarding,
+        examdate: profile.examdate || undefined,
+      }
+
+      onLogin({ email, password })
+    } catch (err) {
+      setError("Unexpected error during login")
+      console.error(err)
+    }
   }
 
   return (
@@ -71,22 +100,22 @@ export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: L
           )}
 
           <div>
-            <label htmlFor="student-id" className="block text-sm font-medium text-gray-700 mb-1">
-              Student ID
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <UserIcon className="text-indigo-500" size={18} />
               </div>
               <input
-                id="student-id"
-                type="text"
-                value={studentId}
+                id="email"
+                type="email"
+                value={email}
                 onChange={(e) => {
-                  setStudentId(e.target.value)
+                  setEmail(e.target.value)
                   if (error) setError("")
                 }}
-                placeholder="e.g. STUD12345"
+                placeholder="you@example.com"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
               />
             </div>

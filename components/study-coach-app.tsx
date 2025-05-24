@@ -9,11 +9,12 @@ type StudyCoachAppProps = {
 }
 
 export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachAppProps) {
+  
   // Onboarding flow state
   const [step, setStep] = useState(1)
-  const [examDate, setExamDate] = useState("")
-  const [studyHours, setStudyHours] = useState(initialUser?.studyHours || 2)
-  const [flashcardTarget, setFlashcardTarget] = useState(initialUser?.flashcardTarget || 20)
+  const [examdate, setexamdate] = useState<string | undefined>(undefined)
+  const [studyhours, setstudyhours] = useState(initialUser?.studyhours || 2)
+  const [flashcardtarget, setflashcardtarget] = useState(initialUser?.flashcardtarget || 20)
   const [completed, setCompleted] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
 
@@ -33,10 +34,10 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
 
   const handleComplete = () => {
     onComplete({
-      examDate,
-      studyHours,
-      flashcardTarget,
-      completedOnboarding: true,
+      examdate,
+      studyhours,
+      flashcardtarget,
+      completedonboarding: true,
     })
   }
 
@@ -44,52 +45,56 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
     switch (step) {
       case 1:
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">When&apos;s your study deadline?</h2>
-            <p className="text-gray-600">This helps us create a personalized learning timeline for you.</p>
-            <div className="flex items-center">
-              <div className="relative w-full">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="text-indigo-500" size={20} />
+          <div className="border-2 border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50 min-h-[350px] flex flex-col justify-center">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">When&apos;s your study deadline?</h2>
+              <p className="text-gray-600">This helps us create a personalized learning timeline for you.</p>
+              <div className="flex items-center">
+                <div className="relative w-full">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="text-indigo-500" size={20} />
+                  </div>
+                  <input
+                    type="date"
+                    value={examdate}
+                    onChange={(e) => setexamdate(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
+                  />
                 </div>
-                <input
-                  type="date"
-                  value={examDate}
-                  onChange={(e) => setExamDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
-                />
               </div>
+              <p className="text-sm text-gray-500">Optional: Skip if you don&apos;t have a specific deadline date.</p>
             </div>
-            <p className="text-sm text-gray-500">Optional: Skip if you don&apos;t have a specific deadline date.</p>
           </div>
         )
       case 2:
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">How many hours can you study daily?</h2>
-            <p className="text-gray-600">Be realistic - consistency is better than burnout.</p>
-            <div className="flex items-center">
-              <Clock className="mr-3 text-indigo-500" size={24} />
-              <div className="w-full">
-                <input
-                  type="range"
-                  min="0.5"
-                  max="8"
-                  step="0.5"
-                  value={studyHours}
-                  onChange={(e) => setStudyHours(Number.parseFloat(e.target.value))}
-                  className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-2">
-                  <span>0.5h</span>
-                  <span>2h</span>
-                  <span>4h</span>
-                  <span>6h</span>
-                  <span>8h</span>
-                </div>
-                <div className="text-center mt-6">
-                  <span className="text-2xl font-bold text-indigo-600">{studyHours}</span>
-                  <span className="text-lg font-medium text-gray-700"> hours per day</span>
+          <div className="border-2 border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50 min-h-[350px] flex flex-col justify-center">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">How many hours can you study daily?</h2>
+              <p className="text-gray-600">Be realistic - consistency is better than burnout.</p>
+              <div className="flex items-center">
+                <Clock className="mr-3 text-indigo-500" size={24} />
+                <div className="w-full">
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="8"
+                    step="0.5"
+                    value={studyhours}
+                    onChange={(e) => setstudyhours(Number.parseFloat(e.target.value))}
+                    className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-sm text-gray-600 mt-2">
+                    <span>0.5h</span>
+                    <span>2h</span>
+                    <span>4h</span>
+                    <span>6h</span>
+                    <span>8h</span>
+                  </div>
+                  <div className="text-center mt-6">
+                    <span className="text-2xl font-bold text-indigo-600">{studyhours}</span>
+                    <span className="text-lg font-medium text-gray-700"> hours per day</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -97,30 +102,32 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
         )
       case 3:
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">How many flashcards can you review daily?</h2>
-            <p className="text-gray-600">Flashcards are a proven way to retain information.</p>
-            <div className="flex items-center">
-              <div className="w-full">
-                <input
-                  type="range"
-                  min="5"
-                  max="100"
-                  step="5"
-                  value={flashcardTarget}
-                  onChange={(e) => setFlashcardTarget(Number.parseInt(e.target.value))}
-                  className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-2">
-                  <span>5</span>
-                  <span>25</span>
-                  <span>50</span>
-                  <span>75</span>
-                  <span>100</span>
-                </div>
-                <div className="text-center mt-6">
-                  <span className="text-2xl font-bold text-indigo-600">{flashcardTarget}</span>
-                  <span className="text-lg font-medium text-gray-700"> flashcards per day</span>
+          <div className="border-2 border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50 min-h-[350px] flex flex-col justify-center">
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">How many flashcards can you review daily?</h2>
+              <p className="text-gray-600">Flashcards are a proven way to retain information.</p>
+              <div className="flex items-center">
+                <div className="w-full">
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={flashcardtarget}
+                    onChange={(e) => setflashcardtarget(Number.parseInt(e.target.value))}
+                    className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-sm text-gray-600 mt-2">
+                    <span>5</span>
+                    <span>25</span>
+                    <span>50</span>
+                    <span>75</span>
+                    <span>100</span>
+                  </div>
+                  <div className="text-center mt-6">
+                    <span className="text-2xl font-bold text-indigo-600">{flashcardtarget}</span>
+                    <span className="text-lg font-medium text-gray-700"> flashcards per day</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -128,32 +135,30 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
         )
       case 4:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50 min-h-[350px] flex flex-col justify-center">
             <h2 className="text-2xl font-bold text-gray-800">Upload your study materials</h2>
             <p className="text-gray-600">Add PDF files to create personalized study plans and flashcards.</p>
 
-            <div className="border-2 border-dashed border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50">
-              <input
-                type="file"
-                id="file-upload"
-                accept=".pdf"
-                className="hidden"
-                multiple
-                onChange={(e) => {
-                  if (e.target.files) {
-                    const newFiles = Array.from(e.target.files)
-                    setUploadedFiles([...uploadedFiles, ...newFiles])
-                  }
-                }}
-              />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Upload className="mx-auto h-12 w-12 text-indigo-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                  <span className="font-medium text-indigo-600">Click to upload</span> or drag and drop PDFs here
-                </p>
-                <p className="text-xs text-gray-500 mt-1">PDF files only (Max 50MB per file)</p>
-              </label>
-            </div>
+            <input
+              type="file"
+              id="file-upload"
+              accept=".pdf"
+              className="hidden"
+              multiple
+              onChange={(e) => {
+                if (e.target.files) {
+                  const newFiles = Array.from(e.target.files)
+                  setUploadedFiles([...uploadedFiles, ...newFiles])
+                }
+              }}
+            />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <Upload className="mx-auto h-12 w-12 text-indigo-400" />
+              <p className="mt-2 text-sm text-gray-600">
+                <span className="font-medium text-indigo-600">Click to upload</span> or drag and drop PDFs here
+              </p>
+              <p className="text-xs text-gray-500 mt-1">PDF files only (Max 50MB per file)</p>
+            </label>
 
             {uploadedFiles.length > 0 && (
               <div className="mt-4">
@@ -215,7 +220,7 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
             </div>
           ))}
         </div>
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="my-4 h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-500"
             style={{ width: `${((step - 1) / 3) * 100}%` }}
@@ -240,13 +245,13 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
         <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl shadow-sm border border-indigo-100">
           <h3 className="font-medium text-gray-700 mb-4">Your Study Plan:</h3>
           <ul className="space-y-4">
-            {examDate && (
+            {examdate && (
               <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
                 <div className="bg-blue-100 p-2 rounded-lg mr-3">
                   <Calendar className="text-blue-500" size={20} />
                 </div>
                 <span>
-                  Study Deadline: <span className="font-medium">{new Date(examDate).toLocaleDateString()}</span>
+                  Study Deadline: <span className="font-medium">{new Date(examdate).toLocaleDateString()}</span>
                 </span>
               </li>
             )}
@@ -255,7 +260,7 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
                 <Clock className="text-indigo-500" size={20} />
               </div>
               <span>
-                Daily Study Goal: <span className="font-medium">{studyHours} hours</span>
+                Daily Study Goal: <span className="font-medium">{studyhours} hours</span>
               </span>
             </li>
             <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
@@ -263,7 +268,7 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
                 <CheckCircle className="text-purple-500" size={20} />
               </div>
               <span>
-                Daily Flashcard Target: <span className="font-medium">{flashcardTarget} cards</span>
+                Daily Flashcard Target: <span className="font-medium">{flashcardtarget} cards</span>
               </span>
             </li>
             {uploadedFiles.length > 0 && (

@@ -1,56 +1,135 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import LoginForm from "@/components/login-form"
 import SignupForm from "@/components/signup-form"
 import StudyCoachApp from "@/components/study-coach-app"
 import Dashboard from "@/components/dashboard"
+import { supabase } from "@/lib/supabaseClient"
+import { BookOpenIcon, SparklesIcon } from "lucide-react"
 
 export type User = {
   id: string
   nickname: string
   email?: string
-  studentId: string
-  examDate?: string
-  studyHours: number
-  flashcardTarget: number
-  completedOnboarding: boolean
+  examdate?: string
+  studyhours: number
+  flashcardtarget: number
+  completedonboarding: boolean
+}
+
+async function fetchUserProfile(userId: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching profile:", error);
+    return null;
+  }
+  return data as User;
+}
+
+async function updateUserProfile(userId: string, updates: Partial<User>) {
+  console.log("Updating user profile with data:", updates);
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating profile:", error);
+    return null;
+  }
+  return data as User;
 }
 
 export default function AuthWrapper() {
   const [currentView, setCurrentView] = useState<"landing" | "login" | "signup" | "onboarding" | "dashboard">("landing")
   const [user, setUser] = useState<User | null>(null)
 
-  const handleLogin = (userData: User) => {
-    setUser(userData)
-    setCurrentView("dashboard")
-  }
-
-  const handleSignup = (userData: Partial<User>) => {
-    // In a real app, this would be an API call to create the user
-    const newUser: User = {
-      id: Math.random().toString(36).substring(2, 9),
-      nickname: userData.nickname || "",
-      studentId: userData.studentId || "",
-      studyHours: 2,
-      flashcardTarget: 20,
-      completedOnboarding: false,
-    }
-    setUser(newUser)
-    setCurrentView("onboarding")
-  }
-
-  const handleOnboardingComplete = (updatedUserData: Partial<User>) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        ...updatedUserData,
-        completedOnboarding: true,
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(profile => {
+          if (profile) {
+            setUser({ ...profile, email: session.user.email || "" });
+            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding");
+          }
+        });
+      } else {
+        setCurrentView("landing");
       }
-      setUser(updatedUser)
-      setCurrentView("dashboard")
+    });
+  }, []);
+
+  function handleLogin(userData: { email: string; password: string }) {
+    const { email, password } = userData;
+    supabase.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
+      if (error) {
+        alert(error.message);
+        return;
+      }
+      if (data.user) {
+        fetchUserProfile(data.user.id).then(profile => {
+          if (profile) {
+            setUser({ ...profile, email: data.user.email || "" }); 
+            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding");
+          } else {
+            alert("Profile not found");
+          }
+        });
+      }
+    });
+  }
+
+  async function handleSignup(userData: { nickname: string; email: string; password: string }) {
+    const { email, password, nickname } = userData;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (data.user) {
+      console.log("User signed up:", data.user);
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        nickname,
+        studyhours: 2,
+        flashcardtarget: 20,
+        completedonboarding: false,
+        examdate: null,
+      });
+      if (insertError) {
+        alert(insertError.message);
+        return;
+      }
+      const profile = await fetchUserProfile(data.user.id);
+      if (profile) {
+        setUser(profile);
+        setCurrentView("onboarding");
+      }
     }
   }
+
+  async function handleOnboardingComplete(updatedUserData: Partial<User>) {
+    console.log("Onboarding complete with data:", updatedUserData);
+  if (user) {
+    const updatedUser = await updateUserProfile(user.id, {
+      ...updatedUserData,
+      completedonboarding: true,
+    });
+    if (updatedUser) {
+      setUser(updatedUser);
+      setCurrentView("dashboard");
+    }
+  }
+}
+
 
   if (currentView === "landing") {
     return (
@@ -151,4 +230,3 @@ export default function AuthWrapper() {
 }
 
 // Icons
-import { BookOpenIcon, SparklesIcon } from "lucide-react"

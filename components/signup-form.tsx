@@ -1,59 +1,60 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import type { User } from "@/components/auth-wrapper"
-import { UserIcon, ArrowLeft, ChevronRight, Mail, BookOpen } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Mail,
+  BookOpen,
+  Lock,
+  UserCircle as UserCircleIcon,
+} from "lucide-react";
 
 type SignupFormProps = {
-  onSignup: (userData: Partial<User>) => void
-  onBackToLanding: () => void
-  onLoginClick: () => void
-}
+  onSignup: (userData: { nickname: string; email: string; password: string }) => void;
+  onBackToLanding: () => void;
+  onLoginClick: () => void;
+};
 
-export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: SignupFormProps) {
-  const [studentId, setStudentId] = useState("")
-  const [nickname, setNickname] = useState("")
-  const [email, setEmail] = useState("")
-  const [errors, setErrors] = useState<{
-    studentId?: string
-    nickname?: string
-    email?: string
-  }>({})
+type Errors = {
+  nickname?: string;
+  email?: string;
+  password?: string;
+};
+
+export default function SignupForm({
+  onBackToLanding,
+  onLoginClick,
+  onSignup,
+}: SignupFormProps) {
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Errors>({});
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const newErrors: {
-      studentId?: string
-      nickname?: string
-      email?: string
-    } = {}
+    const newErrors: Errors = {};
 
-    if (studentId.trim() === "") {
-      newErrors.studentId = "Please enter your student ID"
-    } else if (studentId.length < 5) {
-      newErrors.studentId = "Student ID must be at least 5 characters"
-    }
-
-    if (nickname.trim() === "") {
-      newErrors.nickname = "Please enter your preferred nickname"
-    }
-
-    if (email.trim() === "") {
-      newErrors.email = "Please enter your email"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email address"
-    }
+    if (!nickname.trim()) newErrors.nickname = "Nickname is required";
+    if (!email.trim()) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      newErrors.email = "Invalid email address";
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
+      setErrors(newErrors);
+      return;
     }
 
-    onSignup({ studentId, nickname, email })
-  }
+    setErrors({});
+
+    onSignup({ nickname, email, password });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 flex flex-col items-center justify-center p-4 relative">
@@ -66,7 +67,11 @@ export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: 
 
       <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/50 relative z-10">
         <div className="flex items-center mb-8">
-          <button onClick={onBackToLanding} className="p-2 rounded-full hover:bg-indigo-50 transition text-indigo-600">
+          <button
+            onClick={onBackToLanding}
+            className="p-2 rounded-full hover:bg-indigo-50 transition text-indigo-600"
+            type="button"
+          >
             <ArrowLeft size={20} />
           </button>
           <div className="flex items-center mx-auto pr-8">
@@ -79,34 +84,17 @@ export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: 
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Account</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+          Create Account
+        </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          {/* Nickname */}
           <div>
-            <label htmlFor="student-id" className="block text-sm font-medium text-gray-700 mb-1">
-              Student ID
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <UserIcon className="text-indigo-500" size={18} />
-              </div>
-              <input
-                id="student-id"
-                type="text"
-                value={studentId}
-                onChange={(e) => {
-                  setStudentId(e.target.value)
-                  if (errors.studentId) setErrors({ ...errors, studentId: undefined })
-                }}
-                placeholder="e.g. STUD12345"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
-              />
-            </div>
-            {errors.studentId && <p className="mt-2 text-sm text-red-600">{errors.studentId}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="nickname"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Preferred Nickname
             </label>
             <div className="relative">
@@ -118,18 +106,26 @@ export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: 
                 type="text"
                 value={nickname}
                 onChange={(e) => {
-                  setNickname(e.target.value)
-                  if (errors.nickname) setErrors({ ...errors, nickname: undefined })
+                  setNickname(e.target.value);
+                  if (errors.nickname)
+                    setErrors({ ...errors, nickname: undefined });
                 }}
                 placeholder="How would you like to be called?"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
+                autoComplete="nickname"
               />
             </div>
-            {errors.nickname && <p className="mt-2 text-sm text-red-600">{errors.nickname}</p>}
+            {errors.nickname && (
+              <p className="mt-2 text-sm text-red-600">{errors.nickname}</p>
+            )}
           </div>
 
+          {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -141,17 +137,52 @@ export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: 
                 type="email"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (errors.email) setErrors({ ...errors, email: undefined })
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: undefined });
                 }}
                 placeholder="your.email@example.com"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
+                autoComplete="email"
               />
             </div>
-            {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+            {errors.email && (
+              <p className="mt-2 text-sm text-red-600">{errors.email}</p>
+            )}
             <p className="mt-2 text-sm text-gray-500">
-              We&apos;ll use this to personalize your learning experience and save your progress.
+              We&apos;ll use this to personalize your learning experience and
+              save your progress.
             </p>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock className="text-indigo-500" size={18} />
+              </div>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password)
+                    setErrors({ ...errors, password: undefined });
+                }}
+                placeholder="Enter a secure password"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/50 backdrop-blur-sm"
+                autoComplete="new-password"
+              />
+            </div>
+            {errors.password && (
+              <p className="mt-2 text-sm text-red-600">{errors.password}</p>
+            )}
           </div>
 
           <button
@@ -176,27 +207,5 @@ export default function SignupForm({ onSignup, onBackToLanding, onLoginClick }: 
         </form>
       </div>
     </div>
-  )
-}
-
-// Additional icon
-function UserCircleIcon(props: React.ComponentProps<typeof UserIcon>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="10" r="3" />
-      <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-    </svg>
-  )
+  );
 }

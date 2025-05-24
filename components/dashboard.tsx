@@ -65,7 +65,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+      <div className="w-full flex h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
         <Sidebar className="border-r border-indigo-100">
           <SidebarHeader className="p-4">
             <div className="flex items-center space-x-2">
@@ -151,14 +151,13 @@ export default function Dashboard({ user }: DashboardProps) {
               </div>
               <div>
                 <p className="font-medium text-sm">{user.nickname}</p>
-                <p className="text-xs text-gray-500">{user.studentId}</p>
               </div>
             </div>
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 md:p-8">
+        <main className="w-full flex-1 overflow-auto">
+          <div className="w-full p-4 sm:p-6 md:p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <SidebarTrigger className="mr-4 md:hidden" />
@@ -168,6 +167,7 @@ export default function Dashboard({ user }: DashboardProps) {
                   {currentView === "materials" && "Study Materials"}
                   {currentView === "progress" && "Progress Tracking"}
                   {currentView === "settings" && "Account Settings"}
+                
                 </h1>
               </div>
 
@@ -204,7 +204,7 @@ function OverviewContent({ user }: { user: User }) {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Study Time</p>
-                <p className="font-medium">{user.studyHours} hours today</p>
+                <p className="font-medium">{user.studyhours} hours today</p>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ function OverviewContent({ user }: { user: User }) {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Flashcards</p>
-                <p className="font-medium">{user.flashcardTarget} cards to review</p>
+                <p className="font-medium">{user.flashcardtarget} cards to review</p>
               </div>
             </div>
           </div>
@@ -377,7 +377,6 @@ function OverviewContent({ user }: { user: User }) {
 function SettingsContent({ user }: { user: User }) {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
-      <h2 className="text-lg font-medium mb-6 text-indigo-800">Account Settings</h2>
 
       <div className="space-y-6">
         <div>
@@ -390,21 +389,19 @@ function SettingsContent({ user }: { user: User }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
-            type="text"
-            defaultValue={user.studentId}
-            disabled
-            className="w-full max-w-md p-2 border border-gray-300 rounded-xl bg-gray-50"
+            type="email"
+            defaultValue={user.email}
+            className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
-          <p className="mt-1 text-sm text-gray-500">Student ID cannot be changed</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Hours</label>
           <input
             type="number"
-            defaultValue={user.studyHours}
+            defaultValue={user.studyhours}
             min="0.5"
             max="12"
             step="0.5"
@@ -416,7 +413,7 @@ function SettingsContent({ user }: { user: User }) {
           <label className="block text-sm font-medium text-gray-700 mb-1">Daily Flashcard Target</label>
           <input
             type="number"
-            defaultValue={user.flashcardTarget}
+            defaultValue={user.flashcardtarget}
             min="5"
             max="200"
             step="5"
