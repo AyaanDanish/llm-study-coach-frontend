@@ -14,7 +14,7 @@ export type User = {
   nickname: string
   email?: string
   examdate?: string
-  studyhours: number
+  studyminutes: number
   flashcardtarget: number
   completedonboarding: boolean
 }
@@ -169,7 +169,7 @@ export default function AuthWrapper() {
       const { error: insertError } = await supabase.from("profiles").insert({
         id: data.user.id,
         nickname,
-        studyhours: 2,
+        studyminutes: 30,
         flashcardtarget: 20,
         completedonboarding: false,
         examdate: null,

@@ -37,6 +37,7 @@ import FlashcardSection from "@/components/flashcard-section"
 import StudyMaterialsSection from "@/components/study-materials-section"
 import ProgressSection from "@/components/progress-section"
 import { supabase } from "@/lib/supabaseClient"
+import { StudyTimer } from "@/components/study-timer"
 
 type DashboardProps = {
   user: User
@@ -140,6 +141,15 @@ export default function Dashboard({ user }: DashboardProps) {
             </SidebarGroup>
 
             <SidebarGroup>
+              <SidebarGroupLabel className="text-indigo-800">Study Timer</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="p-4">
+                  <StudyTimer />
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
               <SidebarGroupLabel className="text-indigo-800">Account</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -237,6 +247,15 @@ function OverviewContent({
 
   const { materials, loading } = useStudyMaterials(user.id)
 
+  const formatStudyTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    if (hours === 0) {
+      return `${remainingMinutes} minutes`
+    }
+    return `${hours}h ${remainingMinutes}m`
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
@@ -251,7 +270,7 @@ function OverviewContent({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Study Time</p>
-                <p className="font-medium">{user.studyhours} hours today</p>
+                <p className="font-medium">{formatStudyTime(user.studyminutes)} today</p>
               </div>
             </div>
           </div>
@@ -432,7 +451,7 @@ function SettingsContent({ user }: { user: User }) {
   const [formData, setFormData] = useState({
     nickname: user.nickname,
     email: user.email || "",
-    studyhours: user.studyhours,
+    studyminutes: user.studyminutes,
     flashcardtarget: user.flashcardtarget,
   })
   const [isSaving, setIsSaving] = useState(false)
@@ -460,7 +479,7 @@ function SettingsContent({ user }: { user: User }) {
         .from("profiles")
         .update({
           nickname: formData.nickname,
-          studyhours: formData.studyhours,
+          studyminutes: formData.studyminutes,
           flashcardtarget: formData.flashcardtarget,
         })
         .eq("id", user.id)
@@ -478,6 +497,16 @@ function SettingsContent({ user }: { user: User }) {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  // Convert minutes to hours for display
+  const formatStudyTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    if (hours === 0) {
+      return `${remainingMinutes} minutes`
+    }
+    return `${hours}h ${remainingMinutes}m`
   }
 
   return (
@@ -510,17 +539,18 @@ function SettingsContent({ user }: { user: User }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Hours</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Time</label>
             <input
               type="number"
-              name="studyhours"
-              value={formData.studyhours}
+              name="studyminutes"
+              value={formData.studyminutes}
               onChange={handleChange}
-              min="0.5"
-              max="12"
-              step="0.5"
+              min="15"
+              max="120"
+              step="1"
               className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+            <p className="mt-1 text-sm text-gray-500">Current goal: {formatStudyTime(formData.studyminutes)} per day</p>
           </div>
 
           <div>

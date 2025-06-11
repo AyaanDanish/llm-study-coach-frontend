@@ -13,9 +13,19 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
   // Onboarding flow state
   const [step, setStep] = useState(1)
   const [examdate, setexamdate] = useState<string>("")
-  const [studyhours, setstudyhours] = useState(initialUser?.studyhours || 2)
+  const [studyminutes, setstudyminutes] = useState(initialUser?.studyminutes || 30)
   const [flashcardtarget, setflashcardtarget] = useState(initialUser?.flashcardtarget || 20)
   const [completed, setCompleted] = useState(false)
+
+  // Convert minutes to hours for display
+  const formatStudyTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    if (hours === 0) {
+      return `${remainingMinutes} minutes`
+    }
+    return `${hours}h ${remainingMinutes}m`
+  }
 
   const handleNext = () => {
     if (step < 3) {
@@ -34,7 +44,7 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
   const handleComplete = () => {
     onComplete({
       examdate,
-      studyhours,
+      studyminutes,
       flashcardtarget,
       completedonboarding: true,
     })
@@ -69,30 +79,30 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
         return (
           <div className="border-2 border-indigo-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors bg-indigo-50/50 min-h-[350px] flex flex-col justify-center">
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">How many hours can you study daily?</h2>
+              <h2 className="text-2xl font-bold text-gray-800">How many minutes can you study daily?</h2>
               <p className="text-gray-600">Be realistic - consistency is better than burnout.</p>
               <div className="flex items-center">
                 <Clock className="mr-3 text-indigo-500" size={24} />
                 <div className="w-full">
                   <input
                     type="range"
-                    min="0.5"
-                    max="8"
-                    step="0.5"
-                    value={studyhours}
-                    onChange={(e) => setstudyhours(Number.parseFloat(e.target.value))}
+                    min="15"
+                    max="120"
+                    step="1"
+                    value={studyminutes}
+                    onChange={(e) => setstudyminutes(Number.parseInt(e.target.value))}
                     className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                   />
                   <div className="flex justify-between text-sm text-gray-600 mt-2">
-                    <span>0.5h</span>
+                    <span>15m</span>
+                    <span>45m</span>
+                    <span>1h</span>
+                    <span>1h 30m</span>
                     <span>2h</span>
-                    <span>4h</span>
-                    <span>6h</span>
-                    <span>8h</span>
                   </div>
                   <div className="text-center mt-6">
-                    <span className="text-2xl font-bold text-indigo-600">{studyhours}</span>
-                    <span className="text-lg font-medium text-gray-700"> hours per day</span>
+                    <span className="text-2xl font-bold text-indigo-600">{formatStudyTime(studyminutes)}</span>
+                    <span className="text-lg font-medium text-gray-700"> per day</span>
                   </div>
                 </div>
               </div>
@@ -200,7 +210,7 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
                 <Clock className="text-indigo-500" size={20} />
               </div>
               <span>
-                Daily Study Goal: <span className="font-medium">{studyhours} hours</span>
+                Daily Study Goal: <span className="font-medium">{formatStudyTime(studyminutes)}</span>
               </span>
             </li>
             <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">

@@ -145,31 +145,28 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setTimeRange("day")}
-              className={`px-3 py-1 rounded-xl text-sm ${
-                timeRange === "day"
+              className={`px-3 py-1 rounded-xl text-sm ${timeRange === "day"
                   ? "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 font-medium"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+                }`}
             >
               Day
             </button>
             <button
               onClick={() => setTimeRange("week")}
-              className={`px-3 py-1 rounded-xl text-sm ${
-                timeRange === "week"
+              className={`px-3 py-1 rounded-xl text-sm ${timeRange === "week"
                   ? "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 font-medium"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+                }`}
             >
               Week
             </button>
             <button
               onClick={() => setTimeRange("month")}
-              className={`px-3 py-1 rounded-xl text-sm ${
-                timeRange === "month"
+              className={`px-3 py-1 rounded-xl text-sm ${timeRange === "month"
                   ? "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 font-medium"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+                }`}
             >
               Month
             </button>
@@ -276,7 +273,7 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                       <div className="w-16 h-2 bg-gray-200 rounded-full mr-2 overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
-                          style={{ width: `${(day.studyTime / user.studyHours) * 100}%` }}
+                          style={{ width: `${(day.studyTime / user.studyminutes) * 100}%` }}
                         ></div>
                       </div>
                       {day.studyTime} hrs

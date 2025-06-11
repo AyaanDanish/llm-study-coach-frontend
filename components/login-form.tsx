@@ -55,7 +55,7 @@ export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: L
         id: user.id,
         nickname: profile.nickname,
         email: user.email || undefined,
-        studyhours: profile.studyhours,
+        studyminutes: profile.studyminutes,
         flashcardtarget: profile.flashcardtarget,
         completedonboarding: profile.completedonboarding,
         examdate: profile.examdate || undefined,
