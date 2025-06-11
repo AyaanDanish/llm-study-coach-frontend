@@ -32,7 +32,7 @@ Follow these steps to download and run the project locally:
 Ensure you have the following installed on your system:
 
 - [Node.js](https://nodejs.org/) (v16 or higher)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [npm](https://www.npmjs.com/)
 - [Git](https://git-scm.com/)
 
 ---
@@ -48,11 +48,7 @@ Ensure you have the following installed on your system:
 2. **Install Dependencies**:
    Using npm:
    ```bash
-   npm install --
-   ```
-   Or using yarn:
-   ```bash
-   yarn install
+   npm install --legacy-peer-deps
    ```
 
 ---
