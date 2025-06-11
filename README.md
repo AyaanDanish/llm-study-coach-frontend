@@ -155,6 +155,6 @@ This project is licensed under the MIT License.
 
 For questions or feedback, please contact:
 
-- **Name**: Ayaan
-- **Email**: [your-email@example.com](mailto:your-email@example.com)
-- **GitLab**: [username](https://gitlab.com/username)
+- **Name**: Syed Ayaan Danish
+- **Email**: [ayaan.danish@fu-berlin.de](mailto:ayaan.danish@fu-berlin.de)
+- **GitLab**: [syedayaad01](https://git.imp.fu-berlin.de/syedayaad01)
