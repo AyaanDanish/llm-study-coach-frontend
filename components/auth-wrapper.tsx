@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import LoginForm from "@/components/login-form"
-import SignupForm from "@/components/signup-form"
-import StudyCoachApp from "@/components/study-coach-app"
-import Dashboard from "@/components/dashboard"
-import { supabase } from "@/lib/supabaseClient"
-import { BookOpenIcon, SparklesIcon } from "lucide-react"
+import { useState, useEffect } from "react";
+import LoginForm from "@/components/login-form";
+import SignupForm from "@/components/signup-form";
+import StudyCoachApp from "@/components/study-coach-app";
+import Dashboard from "@/components/dashboard";
+import { supabase } from "@/lib/supabaseClient";
+import { BookOpenIcon, SparklesIcon } from "lucide-react";
 
 export type User = {
-  id: string
-  nickname: string
-  email?: string
-  examdate?: string
-  studyhours: number
-  flashcardtarget: number
-  completedonboarding: boolean
-}
+  id: string;
+  nickname: string;
+  email?: string;
+  examdate?: string;
+  studyhours: number;
+  flashcardtarget: number;
+  completedonboarding: boolean;
+};
 
 async function fetchUserProfile(userId: string): Promise<User | null> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
     .single();
 
   if (error) {
@@ -34,9 +34,9 @@ async function fetchUserProfile(userId: string): Promise<User | null> {
 async function updateUserProfile(userId: string, updates: Partial<User>) {
   console.log("Updating user profile with data:", updates);
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update(updates)
-    .eq('id', userId)
+    .eq("id", userId)
     .select()
     .single();
 
@@ -48,45 +48,92 @@ async function updateUserProfile(userId: string, updates: Partial<User>) {
 }
 
 export default function AuthWrapper() {
-  const [currentView, setCurrentView] = useState<"landing" | "login" | "signup" | "onboarding" | "dashboard">("landing")
-  const [user, setUser] = useState<User | null>(null)
+  const [currentView, setCurrentView] = useState<
+    "landing" | "login" | "signup" | "onboarding" | "dashboard"
+  >("landing");
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Failed to get session:", error);
+        setCurrentView("landing");
+        return;
+      }
+
       if (session?.user) {
-        fetchUserProfile(session.user.id).then(profile => {
-          if (profile) {
-            setUser({ ...profile, email: session.user.email || "" });
-            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding");
-          }
-        });
+        const profile = await fetchUserProfile(session.user.id);
+        if (profile) {
+          setUser({ ...profile, email: session.user.email || "" });
+          setCurrentView(
+            profile.completedonboarding ? "dashboard" : "onboarding"
+          );
+        } else {
+          setCurrentView("landing");
+        }
       } else {
         setCurrentView("landing");
       }
-    });
+    };
+
+    initSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile) {
+            setUser({ ...profile, email: session.user.email || "" });
+            setCurrentView(
+              profile.completedonboarding ? "dashboard" : "onboarding"
+            );
+          }
+        } else {
+          setUser(null);
+          setCurrentView("landing");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   function handleLogin(userData: { email: string; password: string }) {
     const { email, password } = userData;
-    supabase.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
-      if (error) {
-        alert(error.message);
-        return;
-      }
-      if (data.user) {
-        fetchUserProfile(data.user.id).then(profile => {
-          if (profile) {
-            setUser({ ...profile, email: data.user.email || "" }); 
-            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding");
-          } else {
-            alert("Profile not found");
-          }
-        });
-      }
-    });
+    supabase.auth
+      .signInWithPassword({ email, password })
+      .then(({ data, error }) => {
+        if (error) {
+          alert(error.message);
+          return;
+        }
+        if (data.user) {
+          fetchUserProfile(data.user.id).then((profile) => {
+            if (profile) {
+              setUser({ ...profile, email: data.user.email || "" });
+              setCurrentView(
+                profile.completedonboarding ? "dashboard" : "onboarding"
+              );
+            } else {
+              alert("Profile not found");
+            }
+          });
+        }
+      });
   }
 
-  async function handleSignup(userData: { nickname: string; email: string; password: string }) {
+  async function handleSignup(userData: {
+    nickname: string;
+    email: string;
+    password: string;
+  }) {
     const { email, password, nickname } = userData;
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
@@ -95,7 +142,7 @@ export default function AuthWrapper() {
     }
     if (data.user) {
       console.log("User signed up:", data.user);
-      const { error: insertError } = await supabase.from('profiles').insert({
+      const { error: insertError } = await supabase.from("profiles").insert({
         id: data.user.id,
         nickname,
         studyhours: 2,
@@ -117,18 +164,17 @@ export default function AuthWrapper() {
 
   async function handleOnboardingComplete(updatedUserData: Partial<User>) {
     console.log("Onboarding complete with data:", updatedUserData);
-  if (user) {
-    const updatedUser = await updateUserProfile(user.id, {
-      ...updatedUserData,
-      completedonboarding: true,
-    });
-    if (updatedUser) {
-      setUser(updatedUser);
-      setCurrentView("dashboard");
+    if (user) {
+      const updatedUser = await updateUserProfile(user.id, {
+        ...updatedUserData,
+        completedonboarding: true,
+      });
+      if (updatedUser) {
+        setUser(updatedUser);
+        setCurrentView("dashboard");
+      }
     }
   }
-}
-
 
   if (currentView === "landing") {
     return (
@@ -158,12 +204,15 @@ export default function AuthWrapper() {
 
           <div className="flex items-center justify-center space-x-2 mb-6">
             <SparklesIcon size={20} className="text-yellow-300" />
-            <h2 className="text-xl font-medium text-indigo-100">Your AI-Powered Learning Assistant</h2>
+            <h2 className="text-xl font-medium text-indigo-100">
+              Your AI-Powered Learning Assistant
+            </h2>
             <SparklesIcon size={20} className="text-yellow-300" />
           </div>
 
           <p className="text-lg max-w-md mx-auto text-indigo-100">
-            Create a customized study plan, generate flashcards, and get personalized help with any subject.
+            Create a customized study plan, generate flashcards, and get
+            personalized help with any subject.
           </p>
 
           <div className="mt-12 flex gap-4 justify-center">
@@ -194,7 +243,7 @@ export default function AuthWrapper() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (currentView === "login") {
@@ -204,7 +253,7 @@ export default function AuthWrapper() {
         onBackToLanding={() => setCurrentView("landing")}
         onSignupClick={() => setCurrentView("signup")}
       />
-    )
+    );
   }
 
   if (currentView === "signup") {
@@ -214,18 +263,18 @@ export default function AuthWrapper() {
         onBackToLanding={() => setCurrentView("landing")}
         onLoginClick={() => setCurrentView("login")}
       />
-    )
+    );
   }
 
   if (currentView === "onboarding") {
-    return <StudyCoachApp initialUser={user} onComplete={handleOnboardingComplete} />
+    return (
+      <StudyCoachApp initialUser={user} onComplete={handleOnboardingComplete} />
+    );
   }
 
   if (currentView === "dashboard") {
-    return <Dashboard user={user!} />
+    return <Dashboard user={user!} />;
   }
 
-  return null
+  return null;
 }
-
-// Icons

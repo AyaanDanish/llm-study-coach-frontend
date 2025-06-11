@@ -52,6 +52,20 @@ type DashboardView =
 export default function Dashboard({ user }: DashboardProps) {
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Wait a brief moment before redirecting
+
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Error logging out");
+    }
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case "overview":
@@ -65,7 +79,7 @@ export default function Dashboard({ user }: DashboardProps) {
       case "flashcards":
         return <FlashcardSection />;
       case "materials":
-        return <StudyMaterialsSection />;
+        return <StudyMaterialsSection userId={user.id} />;
       case "progress":
         return <ProgressSection user={user} />;
       case "settings":
@@ -165,7 +179,7 @@ export default function Dashboard({ user }: DashboardProps) {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton>
+                    <SidebarMenuButton onClick={handleLogout}>
                       <LogOut size={20} />
                       <span>Logout</span>
                     </SidebarMenuButton>
@@ -236,19 +250,23 @@ function OverviewContent({
       async function fetchMaterials() {
         setLoading(true);
         const { data, error } = await supabase
-          .from("study_files")
+          .from("study_materials")
           .select("*")
           .eq("user_id", userId)
           .order("uploaded_at", { ascending: false })
           .limit(3);
 
         if (error) console.error(error);
-        else setMaterials(data);
+        else setMaterials(data || []);
 
         setLoading(false);
       }
 
-      if (userId) fetchMaterials();
+      if (userId && userId !== "placeholder-user") {
+        fetchMaterials();
+      } else {
+        setLoading(false);
+      }
     }, [userId]);
 
     return { materials, loading };
@@ -344,7 +362,7 @@ function OverviewContent({
                     <FileText className="text-indigo-600" size={20} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium truncate">{item.file_name}</p>
+                    <p className="font-medium truncate">{item.name}</p>
                     <p className="text-sm text-gray-500">
                       {item.subject || "Unknown Subject"}
                     </p>
