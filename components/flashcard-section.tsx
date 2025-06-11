@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { BookOpen, ChevronLeft, ChevronRight, Plus, Search, Settings, Shuffle } from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"
 
 type Flashcard = {
   id: string
@@ -10,8 +11,10 @@ type Flashcard = {
   category: string
   lastReviewed?: Date
   difficulty: "easy" | "medium" | "hard"
+  user_id: string
 }
 
+/*
 // Mock data for flashcards
 const mockFlashcards: Flashcard[] = [
   {
@@ -50,6 +53,7 @@ const mockFlashcards: Flashcard[] = [
     difficulty: "medium",
   },
 ]
+*/
 
 export default function FlashcardSection() {
   const [currentDeck, setCurrentDeck] = useState<"all" | "algorithms" | "data-structures">("all")
@@ -57,9 +61,90 @@ export default function FlashcardSection() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]) // State to store fetched flashcards
+  const [loading, setLoading] = useState(true) // Loading state
+  const [error, setError] = useState<string | null>(null) // Error state
+  const [user, setUser] = useState<any>(null);
 
+  // Function to fetch the current user session
+  const getSession = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
+    if (!user) {
+      setError("Please log in to view your flashcards.")
+      setLoading(false)
+    }
+  }, [])
+
+  // Fetch user session and listen for auth state changes on component mount
+  useEffect(() => {
+    getSession() // Initial session check
+
+    // Listen for auth state changes for real-time user updates
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+      if (session?.user) {
+        // If a user logs in or session refreshes, fetch flashcards
+        fetchFlashcards(session.user.id)
+      } else {
+        // If user logs out, clear flashcards and show login message
+        setFlashcards([]);
+        setError("Please log in to view your flashcards.");
+        setLoading(false); // Stop loading if user logs out
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe() // Clean up subscription on unmount
+    }
+  }, [getSession]) // Dependency array ensures it runs only once on mount
+
+  // Function to fetch flashcards from Supabase for the current user
+  const fetchFlashcards = useCallback(async (userId: string | undefined) => {
+    if (!userId) {
+      // If no user ID, don't attempt to fetch
+      setFlashcards([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true)
+    setError(null)
+    try {
+      // The RLS policy will automatically filter by user_id
+      const { data, error } = await supabase.from("flashcards").select("*")
+
+      if (error) {
+        throw error
+      }
+      // Ensure 'difficulty' and 'category' are correctly typed
+      const typedData: Flashcard[] = data.map((card: any) => ({
+        id: card.id,
+        front: card.front,
+        back: card.back,
+        category: card.category,
+        lastReviewed: card.lastReviewed,
+        difficulty: card.difficulty,
+        user_id: card.user_id, // Include user_id from fetched data
+      }));
+
+      setFlashcards(typedData)
+    } catch (error: any) {
+      console.error("Error fetching flashcards:", error.message)
+      setError("Failed to fetch flashcards. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Fetch flashcards when the user state changes (e.g., after initial login or auth state change)
+  useEffect(() => {
+    if (user) { // Only fetch if a user is authenticated
+      fetchFlashcards(user.id)
+    }
+  }, [user, fetchFlashcards]) // Re-fetch when user object changes or fetchFlashcards memoized function changes
   // Filter flashcards based on current deck and search query
-  const filteredFlashcards = mockFlashcards.filter((card) => {
+  const filteredFlashcards = flashcards.filter((card) => {
     const matchesDeck =
       currentDeck === "all" ||
       (currentDeck === "algorithms" && card.category === "Algorithms") ||
@@ -93,7 +178,78 @@ export default function FlashcardSection() {
     // In a real app, you would shuffle the array here
   }
 
+  // Placeholder for creating a flashcard (implement this with a form later)
+  // Example of creating a flashcard (requires a form/modal)
+  const handleCreateFlashcard = async () => {
+    if (!user) {
+      alert("Please log in to create flashcards.");
+      return;
+    }
+
+    // get these values from a form
+    const newFlashcardData = {
+      front: "New Flashcard Front",
+      back: "New Flashcard Back",
+      category: "Algorithms", // Example category
+      difficulty: "medium", // Example difficulty
+      user_id: user.id // Attach the current user's ID
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('flashcards')
+        .insert([newFlashcardData])
+        .select(); // Use .select() to return the inserted data
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        // Add the newly created card to your state
+        setFlashcards(prevCards => [...prevCards, data[0] as Flashcard]);
+        alert("Flashcard created successfully!");
+      }
+
+    } catch (error: any) {
+      console.error("Error creating flashcard:", error.message);
+      alert("Failed to create flashcard: " + error.message);
+    }
+  };
+
   const renderBrowseView = () => {
+    if (!user && !loading && error) {
+      return (
+        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
+          <p className="text-red-600 font-medium text-lg">{error}</p>
+          <p className="text-gray-500 mt-2">Please log in to view and manage your flashcards.</p>
+          {/* You might add a login button here */}
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-indigo-600">Loading flashcards...</p>
+        </div>
+      )
+    }
+
+     if (error) {
+      return (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={() => user ? fetchFlashcards(user.id) : getSession()} // Retry or get session
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -184,6 +340,38 @@ export default function FlashcardSection() {
   }
 
   const renderStudyView = () => {
+    if (!user && !loading && error) {
+      return (
+        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
+          <p className="text-red-600 font-medium text-lg">{error}</p>
+          <p className="text-gray-500 mt-2">Please log in to study your flashcards.</p>
+          {/* You might add a login button here */}
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-indigo-600">Loading flashcards for study...</p>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={() => user ? fetchFlashcards(user.id) : getSession()} // Retry or get session
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
+
     if (filteredFlashcards.length === 0) {
       return (
         <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
