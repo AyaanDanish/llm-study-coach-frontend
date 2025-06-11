@@ -18,6 +18,7 @@ import {
   Lightbulb,
   ChevronRight,
   Loader2,
+  CheckCircle,
 } from "lucide-react"
 import {
   Sidebar,
@@ -247,14 +248,44 @@ function OverviewContent({
 
   const { materials, loading } = useStudyMaterials(user.id)
 
-  const formatStudyTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
+  // Get current study time from localStorage
+  const [currentStudyTime, setCurrentStudyTime] = useState(0);
+
+  useEffect(() => {
+    const loadTimerState = () => {
+      const savedState = localStorage.getItem("study-timer-state");
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          const today = new Date().toDateString();
+
+          // Only use the time if it's from today
+          if (state.currentDay === today) {
+            setCurrentStudyTime(state.time);
+          }
+        } catch (error) {
+          console.error("Error loading timer state:", error);
+        }
+      }
+    };
+
+    loadTimerState();
+    // Update every second to keep in sync with timer
+    const interval = setInterval(loadTimerState, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatStudyTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
     if (hours === 0) {
-      return `${remainingMinutes} minutes`
+      return `${remainingMinutes} minutes`;
     }
-    return `${hours}h ${remainingMinutes}m`
-  }
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
+  const isGoalComplete = currentStudyTime >= user.studyminutes * 60; // Convert minutes to seconds
 
   return (
     <div className="space-y-6">
@@ -264,14 +295,27 @@ function OverviewContent({
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl shadow-sm border border-blue-100 transform transition-transform hover:scale-105">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2 rounded-full">
-                <Clock className="text-blue-600" size={20} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2 rounded-full">
+                  <Clock className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Study Time</p>
+                  <p className="font-medium">{formatStudyTime(currentStudyTime)} today</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Study Time</p>
-                <p className="font-medium">{formatStudyTime(user.studyminutes)} today</p>
-              </div>
+              {isGoalComplete && (
+                <div className="bg-green-100 p-2 rounded-full">
+                  <CheckCircle className="text-green-600" size={20} />
+                </div>
+              )}
+            </div>
+            <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                style={{ width: `${Math.min((currentStudyTime / (user.studyminutes * 60)) * 100, 100)}%` }}
+              ></div>
             </div>
           </div>
 
