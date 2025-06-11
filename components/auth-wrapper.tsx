@@ -1,147 +1,171 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import LoginForm from "@/components/login-form";
-import SignupForm from "@/components/signup-form";
-import StudyCoachApp from "@/components/study-coach-app";
-import Dashboard from "@/components/dashboard";
-import { supabase } from "@/lib/supabaseClient";
-import { BookOpenIcon, SparklesIcon } from "lucide-react";
+import { useState, useEffect } from "react"
+import LoginForm from "@/components/login-form"
+import SignupForm from "@/components/signup-form"
+import StudyCoachApp from "@/components/study-coach-app"
+import Dashboard from "@/components/dashboard"
+import EmailConfirmation from "@/components/email-confirmation"
+import { supabase } from "@/lib/supabaseClient"
+import { BookOpenIcon, SparklesIcon } from "lucide-react"
 
 export type User = {
-  id: string;
-  nickname: string;
-  email?: string;
-  examdate?: string;
-  studyhours: number;
-  flashcardtarget: number;
-  completedonboarding: boolean;
-};
+  id: string
+  nickname: string
+  email?: string
+  examdate?: string
+  studyhours: number
+  flashcardtarget: number
+  completedonboarding: boolean
+}
 
 async function fetchUserProfile(userId: string): Promise<User | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
   if (error) {
-    return null;
+    return null
   }
-  return data as User;
+  return data as User
 }
 
 async function updateUserProfile(userId: string, updates: Partial<User>) {
-  console.log("Updating user profile with data:", updates);
-  const { data, error } = await supabase
-    .from("profiles")
-    .update(updates)
-    .eq("id", userId)
-    .select()
-    .single();
+  console.log("Updating user profile with data:", updates)
+  const { data, error } = await supabase.from("profiles").update(updates).eq("id", userId).select().single()
 
   if (error) {
-    console.error("Error updating profile:", error);
-    return null;
+    console.error("Error updating profile:", error)
+    return null
   }
-  return data as User;
+  return data as User
 }
 
 export default function AuthWrapper() {
   const [currentView, setCurrentView] = useState<
-    "landing" | "login" | "signup" | "onboarding" | "dashboard"
-  >("landing");
-  const [user, setUser] = useState<User | null>(null);
+    "landing" | "login" | "signup" | "email-confirmation" | "onboarding" | "dashboard"
+  >("landing")
+  const [user, setUser] = useState<User | null>(null)
+  const [pendingEmail, setPendingEmail] = useState<string>("")
 
   useEffect(() => {
-    const initSession = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error("Failed to get session:", error);
-        setCurrentView("landing");
-        return;
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Current session:", session)
 
       if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          setUser({ ...profile, email: session.user.email || "" });
-          setCurrentView(
-            profile.completedonboarding ? "dashboard" : "onboarding"
-          );
-        } else {
-          setCurrentView("landing");
+        console.log("User email confirmed:", session.user.email_confirmed_at)
+
+        // For development: Skip email confirmation if using placeholder Supabase
+        const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")
+
+        if (!session.user.email_confirmed_at && !isPlaceholder) {
+          setPendingEmail(session.user.email || "")
+          setCurrentView("email-confirmation")
+          return
         }
-      } else {
-        setCurrentView("landing");
-      }
-    };
 
-    initSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id).then((profile) => {
           if (profile) {
-            setUser({ ...profile, email: session.user.email || "" });
-            setCurrentView(
-              profile.completedonboarding ? "dashboard" : "onboarding"
-            );
+            setUser({ ...profile, email: session.user.email || "" })
+            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding")
           }
-        } else {
-          setUser(null);
-          setCurrentView("landing");
-        }
+        })
+      } else {
+        setCurrentView("landing")
       }
-    );
+    })
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change:", event, session)
+
+      if (event === "SIGNED_IN" && session?.user) {
+        const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")
+
+        if (!session.user.email_confirmed_at && !isPlaceholder) {
+          setPendingEmail(session.user.email || "")
+          setCurrentView("email-confirmation")
+          return
+        }
+
+        fetchUserProfile(session.user.id).then((profile) => {
+          if (profile) {
+            setUser({ ...profile, email: session.user.email || "" })
+            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding")
+          }
+        })
+      } else if (event === "SIGNED_OUT") {
+        setUser(null)
+        setPendingEmail("")
+        setCurrentView("landing")
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   function handleLogin(userData: { email: string; password: string }) {
-    const { email, password } = userData;
-    supabase.auth
-      .signInWithPassword({ email, password })
-      .then(({ data, error }) => {
-        if (error) {
-          alert(error.message);
-          return;
+    const { email, password } = userData
+    supabase.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
+      if (error) {
+        alert(error.message)
+        return
+      }
+      if (data.user) {
+        const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")
+
+        if (!data.user.email_confirmed_at && !isPlaceholder) {
+          setPendingEmail(data.user.email || "")
+          setCurrentView("email-confirmation")
+          return
         }
-        if (data.user) {
-          fetchUserProfile(data.user.id).then((profile) => {
-            if (profile) {
-              setUser({ ...profile, email: data.user.email || "" });
-              setCurrentView(
-                profile.completedonboarding ? "dashboard" : "onboarding"
-              );
-            } else {
-              alert("Profile not found");
-            }
-          });
-        }
-      });
+
+        fetchUserProfile(data.user.id).then((profile) => {
+          if (profile) {
+            setUser({ ...profile, email: data.user.email || "" })
+            setCurrentView(profile.completedonboarding ? "dashboard" : "onboarding")
+          } else {
+            alert("Profile not found")
+          }
+        })
+      }
+    })
   }
 
-  async function handleSignup(userData: {
-    nickname: string;
-    email: string;
-    password: string;
-  }) {
-    const { email, password, nickname } = userData;
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      alert(error.message);
-      return;
+  async function handleSignup(userData: { nickname: string; email: string; password: string }) {
+    const { email, password, nickname } = userData
+
+    console.log("Attempting signup for:", email)
+
+    // Check if using placeholder Supabase
+    const isPlaceholder = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("placeholder")
+
+    if (isPlaceholder) {
+      alert("⚠️ Using placeholder Supabase. Email confirmation is disabled for development.")
     }
+
+    // Sign up with email confirmation required (if not placeholder)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: isPlaceholder
+        ? {}
+        : {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+    })
+
+    console.log("Signup response:", { data, error })
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
     if (data.user) {
-      console.log("User signed up:", data.user);
+      console.log("User signed up:", data.user)
+
+      // Create profile
       const { error: insertError } = await supabase.from("profiles").insert({
         id: data.user.id,
         nickname,
@@ -149,30 +173,61 @@ export default function AuthWrapper() {
         flashcardtarget: 20,
         completedonboarding: false,
         examdate: null,
-      });
+      })
+
       if (insertError) {
-        alert(insertError.message);
-        return;
+        alert(insertError.message)
+        return
       }
-      const profile = await fetchUserProfile(data.user.id);
-      if (profile) {
-        setUser(profile);
-        setCurrentView("onboarding");
+
+      // If using placeholder or email already confirmed, proceed directly
+      if (isPlaceholder || data.user.email_confirmed_at) {
+        const profile = await fetchUserProfile(data.user.id)
+        if (profile) {
+          setUser(profile)
+          setCurrentView("onboarding")
+        }
+      } else {
+        // Set pending email and show confirmation screen
+        setPendingEmail(email)
+        setCurrentView("email-confirmation")
       }
     }
   }
 
   async function handleOnboardingComplete(updatedUserData: Partial<User>) {
-    console.log("Onboarding complete with data:", updatedUserData);
+    console.log("Onboarding complete with data:", updatedUserData)
     if (user) {
       const updatedUser = await updateUserProfile(user.id, {
         ...updatedUserData,
         completedonboarding: true,
-      });
+      })
       if (updatedUser) {
-        setUser(updatedUser);
-        setCurrentView("dashboard");
+        setUser(updatedUser)
+        setCurrentView("dashboard")
       }
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!pendingEmail) return
+
+    console.log("Resending confirmation to:", pendingEmail)
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    console.log("Resend response:", { error })
+
+    if (error) {
+      alert(`Error: ${error.message}`)
+    } else {
+      alert("Confirmation email sent! Please check your inbox and spam folder.")
     }
   }
 
@@ -204,15 +259,12 @@ export default function AuthWrapper() {
 
           <div className="flex items-center justify-center space-x-2 mb-6">
             <SparklesIcon size={20} className="text-yellow-300" />
-            <h2 className="text-xl font-medium text-indigo-100">
-              Your AI-Powered Learning Assistant
-            </h2>
+            <h2 className="text-xl font-medium text-indigo-100">Your AI-Powered Learning Assistant</h2>
             <SparklesIcon size={20} className="text-yellow-300" />
           </div>
 
           <p className="text-lg max-w-md mx-auto text-indigo-100">
-            Create a customized study plan, generate flashcards, and get
-            personalized help with any subject.
+            Create a customized study plan, generate flashcards, and get personalized help with any subject.
           </p>
 
           <div className="mt-12 flex gap-4 justify-center">
@@ -243,7 +295,7 @@ export default function AuthWrapper() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (currentView === "login") {
@@ -253,7 +305,7 @@ export default function AuthWrapper() {
         onBackToLanding={() => setCurrentView("landing")}
         onSignupClick={() => setCurrentView("signup")}
       />
-    );
+    )
   }
 
   if (currentView === "signup") {
@@ -263,18 +315,26 @@ export default function AuthWrapper() {
         onBackToLanding={() => setCurrentView("landing")}
         onLoginClick={() => setCurrentView("login")}
       />
-    );
+    )
+  }
+
+  if (currentView === "email-confirmation") {
+    return (
+      <EmailConfirmation
+        email={pendingEmail}
+        onResendConfirmation={handleResendConfirmation}
+        onBackToLanding={() => setCurrentView("landing")}
+      />
+    )
   }
 
   if (currentView === "onboarding") {
-    return (
-      <StudyCoachApp initialUser={user} onComplete={handleOnboardingComplete} />
-    );
+    return <StudyCoachApp initialUser={user} onComplete={handleOnboardingComplete} />
   }
 
   if (currentView === "dashboard") {
-    return <Dashboard user={user!} />;
+    return <Dashboard user={user!} />
   }
 
-  return null;
+  return null
 }

@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState, useEffect } from "react";
-import type { User } from "@/components/auth-wrapper";
+import { useState, useEffect } from "react"
+import type { User } from "@/components/auth-wrapper"
 import {
   BookOpen,
   Clock,
@@ -18,7 +18,7 @@ import {
   Lightbulb,
   Search,
   ChevronRight,
-} from "lucide-react";
+} from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -32,68 +32,53 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import FlashcardSection from "@/components/flashcard-section";
-import StudyMaterialsSection from "@/components/study-materials-section";
-import ProgressSection from "@/components/progress-section";
-import { supabase } from "@/lib/supabaseClient";
+} from "@/components/ui/sidebar"
+import FlashcardSection from "@/components/flashcard-section"
+import StudyMaterialsSection from "@/components/study-materials-section"
+import ProgressSection from "@/components/progress-section"
+import { supabase } from "@/lib/supabaseClient"
 
 type DashboardProps = {
-  user: User;
-};
+  user: User
+}
 
-type DashboardView =
-  | "overview"
-  | "flashcards"
-  | "materials"
-  | "progress"
-  | "settings";
+type DashboardView = "overview" | "flashcards" | "materials" | "progress" | "settings"
 
 export default function Dashboard({ user }: DashboardProps) {
-  const [currentView, setCurrentView] = useState<DashboardView>("overview");
+  const [currentView, setCurrentView] = useState<DashboardView>("overview")
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Wait a brief moment before redirecting
-
-      window.location.href = "/";
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("Logout error:", error)
+        alert("Error logging out")
+        return
+      }
+      // The auth state change will be handled by the AuthWrapper
+      window.location.href = "/"
     } catch (error) {
-      console.error("Logout error:", error);
-      alert("Error logging out");
+      console.error("Logout error:", error)
+      alert("Error logging out")
     }
-  };
+  }
 
   const renderContent = () => {
     switch (currentView) {
       case "overview":
-        return (
-          <OverviewContent
-            user={user}
-            setCurrentView={setCurrentView}
-            currentView={currentView}
-          />
-        );
+        return <OverviewContent user={user} setCurrentView={setCurrentView} currentView={currentView} />
       case "flashcards":
-        return <FlashcardSection />;
+        return <FlashcardSection />
       case "materials":
-        return <StudyMaterialsSection userId={user.id} />;
+        return <StudyMaterialsSection userId={user.id} />
       case "progress":
-        return <ProgressSection user={user} />;
+        return <ProgressSection user={user} />
       case "settings":
-        return <SettingsContent user={user} />;
+        return <SettingsContent user={user} />
       default:
-        return (
-          <OverviewContent
-            user={user}
-            setCurrentView={setCurrentView}
-            currentView={currentView}
-          />
-        );
+        return <OverviewContent user={user} setCurrentView={setCurrentView} currentView={currentView} />
     }
-  };
+  }
 
   return (
     <SidebarProvider>
@@ -114,16 +99,11 @@ export default function Dashboard({ user }: DashboardProps) {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel className="text-indigo-800">
-                Main
-              </SidebarGroupLabel>
+              <SidebarGroupLabel className="text-indigo-800">Main</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setCurrentView("overview")}
-                      isActive={currentView === "overview"}
-                    >
+                    <SidebarMenuButton onClick={() => setCurrentView("overview")} isActive={currentView === "overview"}>
                       <Home size={20} />
                       <span>Overview</span>
                     </SidebarMenuButton>
@@ -150,10 +130,7 @@ export default function Dashboard({ user }: DashboardProps) {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setCurrentView("progress")}
-                      isActive={currentView === "progress"}
-                    >
+                    <SidebarMenuButton onClick={() => setCurrentView("progress")} isActive={currentView === "progress"}>
                       <BarChart size={20} />
                       <span>Progress</span>
                     </SidebarMenuButton>
@@ -163,16 +140,11 @@ export default function Dashboard({ user }: DashboardProps) {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel className="text-indigo-800">
-                Account
-              </SidebarGroupLabel>
+              <SidebarGroupLabel className="text-indigo-800">Account</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={() => setCurrentView("settings")}
-                      isActive={currentView === "settings"}
-                    >
+                    <SidebarMenuButton onClick={() => setCurrentView("settings")} isActive={currentView === "settings"}>
                       <Settings size={20} />
                       <span>Settings</span>
                     </SidebarMenuButton>
@@ -230,7 +202,7 @@ export default function Dashboard({ user }: DashboardProps) {
         </main>
       </div>
     </SidebarProvider>
-  );
+  )
 }
 
 function OverviewContent({
@@ -238,48 +210,46 @@ function OverviewContent({
   setCurrentView,
   currentView,
 }: {
-  user: User;
-  setCurrentView: React.Dispatch<React.SetStateAction<DashboardView>>;
-  currentView: DashboardView;
+  user: User
+  setCurrentView: React.Dispatch<React.SetStateAction<DashboardView>>
+  currentView: DashboardView
 }) {
   function useStudyMaterials(userId: string) {
-    const [materials, setMaterials] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [materials, setMaterials] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
       async function fetchMaterials() {
-        setLoading(true);
+        setLoading(true)
         const { data, error } = await supabase
           .from("study_materials")
           .select("*")
           .eq("user_id", userId)
           .order("uploaded_at", { ascending: false })
-          .limit(3);
+          .limit(3)
 
-        if (error) console.error(error);
-        else setMaterials(data || []);
+        if (error) console.error(error)
+        else setMaterials(data || [])
 
-        setLoading(false);
+        setLoading(false)
       }
 
       if (userId && userId !== "placeholder-user") {
-        fetchMaterials();
+        fetchMaterials()
       } else {
-        setLoading(false);
+        setLoading(false)
       }
-    }, [userId]);
+    }, [userId])
 
-    return { materials, loading };
+    return { materials, loading }
   }
 
-  const { materials, loading } = useStudyMaterials(user.id);
+  const { materials, loading } = useStudyMaterials(user.id)
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
-        <h2 className="text-lg font-medium mb-4 text-indigo-800">
-          Welcome back, {user.nickname}!
-        </h2>
+        <h2 className="text-lg font-medium mb-4 text-indigo-800">Welcome back, {user.nickname}!</h2>
         <p className="text-gray-600">Here's your study plan for today:</p>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -302,9 +272,7 @@ function OverviewContent({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Flashcards</p>
-                <p className="font-medium">
-                  {user.flashcardtarget} cards to review
-                </p>
+                <p className="font-medium">{user.flashcardtarget} cards to review</p>
               </div>
             </div>
           </div>
@@ -326,9 +294,7 @@ function OverviewContent({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-indigo-800">
-              Study Materials
-            </h2>
+            <h2 className="text-lg font-medium text-indigo-800">Study Materials</h2>
             <button
               className="text-indigo-600 text-sm font-medium hover:underline"
               onClick={() => setCurrentView("materials")}
@@ -339,9 +305,7 @@ function OverviewContent({
 
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-gray-500">
-                Loading study materials...
-              </p>
+              <p className="text-sm text-gray-500">Loading study materials...</p>
             ) : materials.length === 0 ? (
               <div className="text-sm text-gray-500 bg-indigo-50 p-4 rounded-lg text-center h-64 flex items-center justify-center flex-col">
                 <p>You haven't uploaded any study materials yet</p>
@@ -363,9 +327,7 @@ function OverviewContent({
                   </div>
                   <div className="flex-1">
                     <p className="font-medium truncate">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.subject || "Unknown Subject"}
-                    </p>
+                    <p className="text-sm text-gray-500">{item.subject || "Unknown Subject"}</p>
                   </div>
                   <ChevronRight size={18} className="text-indigo-400" />
                 </div>
@@ -376,9 +338,7 @@ function OverviewContent({
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-indigo-800">
-              Weekly Progress
-            </h2>
+            <h2 className="text-lg font-medium text-indigo-800">Weekly Progress</h2>
             <button
               className="text-indigo-600 text-sm font-medium hover:underline"
               onClick={() => setCurrentView("progress")}
@@ -394,10 +354,7 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">8/14 hours</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500"
-                  style={{ width: "57%" }}
-                ></div>
+                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: "57%" }}></div>
               </div>
             </div>
 
@@ -407,10 +364,7 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">85/140 cards</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
-                  style={{ width: "61%" }}
-                ></div>
+                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: "61%" }}></div>
               </div>
             </div>
 
@@ -420,10 +374,7 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">12/15 topics</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
-                  style={{ width: "80%" }}
-                ></div>
+                <div className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500" style={{ width: "80%" }}></div>
               </div>
             </div>
 
@@ -433,10 +384,7 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">85% average</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
-                  style={{ width: "85%" }}
-                ></div>
+                <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: "85%" }}></div>
               </div>
             </div>
           </div>
@@ -445,12 +393,8 @@ function OverviewContent({
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-indigo-800">
-            AI-Generated Study Tips
-          </h2>
-          <button className="text-indigo-600 text-sm font-medium hover:underline">
-            Refresh
-          </button>
+          <h2 className="text-lg font-medium text-indigo-800">AI-Generated Study Tips</h2>
+          <button className="text-indigo-600 text-sm font-medium hover:underline">Refresh</button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -462,8 +406,7 @@ function OverviewContent({
               <p className="font-medium">Spaced Repetition</p>
             </div>
             <p className="text-sm text-gray-600">
-              Review your flashcards at increasing intervals to improve
-              long-term retention.
+              Review your flashcards at increasing intervals to improve long-term retention.
             </p>
           </div>
 
@@ -474,10 +417,7 @@ function OverviewContent({
               </div>
               <p className="font-medium">Active Recall</p>
             </div>
-            <p className="text-sm text-gray-600">
-              Test yourself on concepts rather than passively reading your
-              notes.
-            </p>
+            <p className="text-sm text-gray-600">Test yourself on concepts rather than passively reading your notes.</p>
           </div>
 
           <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 rounded-xl shadow-sm border border-purple-100 transform transition-transform hover:scale-105">
@@ -488,14 +428,13 @@ function OverviewContent({
               <p className="font-medium">Pomodoro Technique</p>
             </div>
             <p className="text-sm text-gray-600">
-              Study in focused 25-minute intervals with 5-minute breaks in
-              between.
+              Study in focused 25-minute intervals with 5-minute breaks in between.
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function SettingsContent({ user }: { user: User }) {
@@ -503,9 +442,7 @@ function SettingsContent({ user }: { user: User }) {
     <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nickname
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
           <input
             type="text"
             defaultValue={user.nickname}
@@ -514,9 +451,7 @@ function SettingsContent({ user }: { user: User }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
             type="email"
             defaultValue={user.email}
@@ -525,9 +460,7 @@ function SettingsContent({ user }: { user: User }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Daily Study Hours
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Hours</label>
           <input
             type="number"
             defaultValue={user.studyhours}
@@ -539,9 +472,7 @@ function SettingsContent({ user }: { user: User }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Daily Flashcard Target
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Flashcard Target</label>
           <input
             type="number"
             defaultValue={user.flashcardtarget}
@@ -559,7 +490,7 @@ function SettingsContent({ user }: { user: User }) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 // Bell icon for notifications
@@ -580,5 +511,5 @@ function Bell(props: React.ComponentProps<typeof Clock>) {
       <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
       <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
     </svg>
-  );
+  )
 }
