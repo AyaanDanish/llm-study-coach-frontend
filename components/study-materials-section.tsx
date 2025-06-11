@@ -15,6 +15,7 @@ import {
   Loader2,
   Download,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { supabase, type StudyMaterial } from "@/lib/supabaseClient";
 import UploadDialog from "./upload-dialog";
@@ -283,8 +284,9 @@ export default function StudyMaterialsSection({
               variant="outline"
               size="sm"
               className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+              title="Refresh materials"
             >
-              <Plus size={18} />
+              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </Button>
           </div>
         </div>

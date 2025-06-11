@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { BookOpen, ChevronLeft, ChevronRight, Plus, Search, Settings, Shuffle } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { BookOpen, ChevronLeft, ChevronRight, Plus, Search, Settings, Shuffle, Eye, EyeOff, MoreVertical, Pencil, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import CreateFlashcardDialog from "./create-flashcard-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 type Flashcard = {
   id: string
@@ -14,57 +22,22 @@ type Flashcard = {
   user_id: string
 }
 
-/*
-// Mock data for flashcards
-const mockFlashcards: Flashcard[] = [
-  {
-    id: "1",
-    front: "What is Big O Notation?",
-    back: "Big O notation is a mathematical notation that describes the limiting behavior of a function when the argument tends towards a particular value or infinity. In computer science, it's used to classify algorithms according to how their run time or space requirements grow as the input size grows.",
-    category: "Algorithms",
-    difficulty: "medium",
-  },
-  {
-    id: "2",
-    front: "What is a Stack data structure?",
-    back: "A stack is a linear data structure that follows the Last In First Out (LIFO) principle. The last item to be inserted is the first one to be deleted. Basic operations include push (insert) and pop (remove).",
-    category: "Data Structures",
-    difficulty: "easy",
-  },
-  {
-    id: "3",
-    front: "What is a Queue data structure?",
-    back: "A queue is a linear data structure that follows the First In First Out (FIFO) principle. The first item to be inserted is the first one to be deleted. Basic operations include enqueue (insert) and dequeue (remove).",
-    category: "Data Structures",
-    difficulty: "easy",
-  },
-  {
-    id: "4",
-    front: "What is a Binary Search Tree?",
-    back: "A binary search tree is a node-based binary tree data structure that has the following properties: The left subtree of a node contains only nodes with keys lesser than the node's key. The right subtree of a node contains only nodes with keys greater than the node's key.",
-    category: "Data Structures",
-    difficulty: "hard",
-  },
-  {
-    id: "5",
-    front: "What is the time complexity of quicksort?",
-    back: "The average time complexity of quicksort is O(n log n), where n is the number of items being sorted. In the worst case, it's O(n²), but this is rare with good pivot selection strategies.",
-    category: "Algorithms",
-    difficulty: "medium",
-  },
-]
-*/
 
 export default function FlashcardSection() {
-  const [currentDeck, setCurrentDeck] = useState<"all" | "algorithms" | "data-structures">("all")
+  const [currentDeck, setCurrentDeck] = useState<string>("all")
   const [currentView, setCurrentView] = useState<"browse" | "study">("browse")
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showAnswers, setShowAnswers] = useState(false)
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]) // State to store fetched flashcards
   const [loading, setLoading] = useState(true) // Loading state
   const [error, setError] = useState<string | null>(null) // Error state
   const [user, setUser] = useState<any>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editingCard, setEditingCard] = useState<Flashcard | null>(null)
+  const [deletingCard, setDeletingCard] = useState<Flashcard | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Function to fetch the current user session
   const getSession = useCallback(async () => {
@@ -143,20 +116,22 @@ export default function FlashcardSection() {
       fetchFlashcards(user.id)
     }
   }, [user, fetchFlashcards]) // Re-fetch when user object changes or fetchFlashcards memoized function changes
-  // Filter flashcards based on current deck and search query
-  const filteredFlashcards = flashcards.filter((card) => {
-    const matchesDeck =
-      currentDeck === "all" ||
-      (currentDeck === "algorithms" && card.category === "Algorithms") ||
-      (currentDeck === "data-structures" && card.category === "Data Structures")
 
-    const matchesSearch =
-      searchQuery === "" ||
-      card.front.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.back.toLowerCase().includes(searchQuery.toLowerCase())
+  // Add a function to get unique categories
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set(flashcards.map(card => card.category))
+    return Array.from(categories).sort()
+  }, [flashcards])
 
-    return matchesDeck && matchesSearch
-  })
+  // Update the filtering logic
+  const filteredFlashcards = useMemo(() => {
+    return flashcards.filter((card) => {
+      const matchesSearch = card.front.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.back.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesDeck = currentDeck === "all" || card.category === currentDeck
+      return matchesSearch && matchesDeck
+    })
+  }, [flashcards, searchQuery, currentDeck])
 
   const handleNextCard = () => {
     if (currentCardIndex < filteredFlashcards.length - 1) {
@@ -217,15 +192,37 @@ export default function FlashcardSection() {
     }
   };
 
+  // Add function to handle card deletion
+  const handleDeleteCard = async (card: Flashcard) => {
+    if (!user) return
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('flashcards')
+        .delete()
+        .eq('id', card.id)
+
+      if (error) throw error
+
+      // Remove the card from the local state
+      setFlashcards(prevCards => prevCards.filter(c => c.id !== card.id))
+      setDeletingCard(null)
+    } catch (error: any) {
+      console.error("Error deleting flashcard:", error)
+      alert("Failed to delete flashcard: " + error.message)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const renderBrowseView = () => {
     if (!user && !loading && error) {
       return (
         <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
           <p className="text-red-600 font-medium text-lg">{error}</p>
           <p className="text-gray-500 mt-2">Please log in to view and manage your flashcards.</p>
-          {/* You might add a login button here */}
         </div>
-      );
+      )
     }
 
     if (loading) {
@@ -236,12 +233,12 @@ export default function FlashcardSection() {
       )
     }
 
-     if (error) {
+    if (error) {
       return (
         <div className="text-center py-12 text-red-600">
           <p>{error}</p>
           <button
-            onClick={() => user ? fetchFlashcards(user.id) : getSession()} // Retry or get session
+            onClick={() => user ? fetchFlashcards(user.id) : getSession()}
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
           >
             Retry
@@ -269,12 +266,15 @@ export default function FlashcardSection() {
           <div className="flex items-center space-x-2">
             <select
               value={currentDeck}
-              onChange={(e) => setCurrentDeck(e.target.value as any)}
+              onChange={(e) => setCurrentDeck(e.target.value)}
               className="p-2 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80"
             >
               <option value="all">All Decks</option>
-              <option value="algorithms">Algorithms</option>
-              <option value="data-structures">Data Structures</option>
+              {uniqueCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
 
             <button
@@ -285,51 +285,97 @@ export default function FlashcardSection() {
               Study
             </button>
 
-            <button className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600">
+            <button
+              onClick={() => setShowAnswers(!showAnswers)}
+              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
+              title={showAnswers ? "Hide answers" : "Show answers"}
+            >
+              {showAnswers ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+
+            <button
+              onClick={() => setCreateDialogOpen(true)}
+              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
+              title="Create new flashcard"
+            >
               <Plus size={18} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFlashcards.map((card) => (
-            <div
-              key={card.id}
-              className="bg-white border border-indigo-100 rounded-xl p-5 hover:shadow-md transition transform hover:scale-105 hover:border-indigo-300"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <span
-                  className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    card.category === "Algorithms"
-                      ? "bg-gradient-to-r from-purple-100 to-fuchsia-100 text-purple-800"
-                      : "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800"
-                  }`}
-                >
-                  {card.category}
-                </span>
-                <span
-                  className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    card.difficulty === "easy"
-                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800"
-                      : card.difficulty === "medium"
-                        ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800"
-                        : "bg-gradient-to-r from-red-100 to-rose-100 text-red-800"
-                  }`}
-                >
-                  {card.difficulty.charAt(0).toUpperCase() + card.difficulty.slice(1)}
-                </span>
+        {filteredFlashcards.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredFlashcards.map((card) => (
+              <div
+                key={card.id}
+                className="bg-white border border-indigo-100 rounded-xl p-5 hover:shadow-md transition transform hover:scale-105 hover:border-indigo-300 relative group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex gap-2">
+                    <span
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${card.category === "Algorithms"
+                        ? "bg-gradient-to-r from-purple-100 to-fuchsia-100 text-purple-800"
+                        : "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800"
+                        }`}
+                    >
+                      {card.category}
+                    </span>
+                    <span
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${card.difficulty === "easy"
+                        ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800"
+                        : card.difficulty === "medium"
+                          ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800"
+                          : "bg-gradient-to-r from-red-100 to-rose-100 text-red-800"
+                        }`}
+                    >
+                      {card.difficulty.charAt(0).toUpperCase() + card.difficulty.slice(1)}
+                    </span>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="p-1 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"
+                        title="More options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => setEditingCard(card)}
+                        className="text-indigo-600 cursor-pointer"
+                      >
+                        <Pencil size={16} className="mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setDeletingCard(card)}
+                        className="text-red-600 cursor-pointer"
+                      >
+                        <Trash2 size={16} className="mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <h3 className="font-medium mb-2 line-clamp-2">{card.front}</h3>
+                {showAnswers && (
+                  <p className="text-sm text-gray-600 line-clamp-3 mt-2 border-t border-indigo-100 pt-2">
+                    {card.back}
+                  </p>
+                )}
               </div>
-
-              <h3 className="font-medium mb-2 line-clamp-2">{card.front}</h3>
-              <p className="text-sm text-gray-600 line-clamp-3">{card.back}</p>
-            </div>
-          ))}
-        </div>
-
-        {filteredFlashcards.length === 0 && (
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
             <p className="text-gray-500">No flashcards found. Try a different search or create new ones.</p>
-            <button className="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center mx-auto">
+            <button
+              onClick={() => setCreateDialogOpen(true)}
+              className="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center mx-auto"
+            >
               <Plus size={18} className="mr-2" />
               Create Flashcard
             </button>
@@ -481,6 +527,53 @@ export default function FlashcardSection() {
   return (
     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100">
       {currentView === "browse" ? renderBrowseView() : renderStudyView()}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingCard} onOpenChange={() => setDeletingCard(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Flashcard</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this flashcard? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingCard && handleDeleteCard(deletingCard)}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Dialog */}
+      {editingCard && (
+        <CreateFlashcardDialog
+          isOpen={!!editingCard}
+          onClose={() => setEditingCard(null)}
+          onSuccess={() => {
+            fetchFlashcards(user?.id)
+            setEditingCard(null)
+          }}
+          userId={user?.id || ""}
+          editMode={true}
+          initialData={editingCard}
+        />
+      )}
+
+      {/* Existing Create Dialog */}
+      {user && !editingCard && (
+        <CreateFlashcardDialog
+          isOpen={createDialogOpen}
+          onClose={() => setCreateDialogOpen(false)}
+          onSuccess={() => fetchFlashcards(user.id)}
+          userId={user.id}
+        />
+      )}
     </div>
   )
 }

@@ -16,8 +16,8 @@ import {
   BookOpenCheck,
   Brain,
   Lightbulb,
-  Search,
   ChevronRight,
+  Loader2,
 } from "lucide-react"
 import {
   Sidebar,
@@ -185,15 +185,6 @@ export default function Dashboard({ user }: DashboardProps) {
                   {currentView === "progress" && "Progress Tracking"}
                   {currentView === "settings" && "Account Settings"}
                 </h1>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <button className="p-2 rounded-full hover:bg-indigo-100 text-indigo-600">
-                  <Search size={20} />
-                </button>
-                <button className="p-2 rounded-full hover:bg-indigo-100 text-indigo-600">
-                  <Bell size={20} />
-                </button>
               </div>
             </div>
 
@@ -438,78 +429,144 @@ function OverviewContent({
 }
 
 function SettingsContent({ user }: { user: User }) {
+  const [formData, setFormData] = useState({
+    nickname: user.nickname,
+    email: user.email || "",
+    studyhours: user.studyhours,
+    flashcardtarget: user.flashcardtarget,
+  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === "number" ? parseFloat(value) : value
+    }))
+    setError("")
+    setSuccess(false)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSaving(true)
+    setError("")
+    setSuccess(false)
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          nickname: formData.nickname,
+          studyhours: formData.studyhours,
+          flashcardtarget: formData.flashcardtarget,
+        })
+        .eq("id", user.id)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+
+      setSuccess(true)
+      // Update the user object in the parent component
+      // window.location.reload() // Temporary solution to refresh the user data
+    } catch (err: any) {
+      console.error("Error updating profile:", err)
+      setError(err.message || "Failed to update profile")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
-          <input
-            type="text"
-            defaultValue={user.nickname}
-            className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
+        <h2 className="text-lg font-medium mb-6 text-indigo-800">Account Settings</h2>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            defaultValue={user.email}
-            className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
+            <input
+              type="text"
+              name="nickname"
+              value={formData.nickname}
+              onChange={handleChange}
+              className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Hours</label>
-          <input
-            type="number"
-            defaultValue={user.studyhours}
-            min="0.5"
-            max="12"
-            step="0.5"
-            className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              disabled
+              className="w-full max-w-md p-2 border border-gray-300 rounded-xl bg-gray-50 text-gray-500"
+            />
+            <p className="mt-1 text-sm text-gray-500">Email cannot be changed</p>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Daily Flashcard Target</label>
-          <input
-            type="number"
-            defaultValue={user.flashcardtarget}
-            min="5"
-            max="200"
-            step="5"
-            className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Hours</label>
+            <input
+              type="number"
+              name="studyhours"
+              value={formData.studyhours}
+              onChange={handleChange}
+              min="0.5"
+              max="12"
+              step="0.5"
+              className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
 
-        <div className="pt-4">
-          <button className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-            Save Changes
-          </button>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Flashcard Target</label>
+            <input
+              type="number"
+              name="flashcardtarget"
+              value={formData.flashcardtarget}
+              onChange={handleChange}
+              min="5"
+              max="200"
+              step="5"
+              className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+              <p className="text-sm text-green-600">Profile updated successfully!</p>
+            </div>
+          )}
+
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="inline-block h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  )
-}
-
-// Bell icon for notifications
-function Bell(props: React.ComponentProps<typeof Clock>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
   )
 }
