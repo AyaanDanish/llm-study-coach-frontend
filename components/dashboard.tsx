@@ -277,14 +277,10 @@ function OverviewContent({
 
   const formatStudyTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (hours === 0) {
-      return `${remainingMinutes} minutes`;
-    }
-    return `${hours}h ${remainingMinutes}m`;
+    return `${minutes} minutes`;
   };
 
+  const remainingStudyTime = Math.max(0, user.studyminutes - Math.floor(currentStudyTime / 60));
   const isGoalComplete = currentStudyTime >= user.studyminutes * 60; // Convert minutes to seconds
 
   return (
@@ -294,7 +290,7 @@ function OverviewContent({
         <p className="text-gray-600">Here's your study plan for today:</p>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl shadow-sm border border-blue-100 transform transition-transform hover:scale-105">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl shadow-sm border border-blue-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2 rounded-full">
@@ -302,7 +298,7 @@ function OverviewContent({
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Study Time</p>
-                  <p className="font-medium">{formatStudyTime(currentStudyTime)} today</p>
+                  <p className="font-medium">{remainingStudyTime} minutes remaining</p>
                 </div>
               </div>
               {isGoalComplete && (
@@ -315,7 +311,7 @@ function OverviewContent({
               <div
                 className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
                 style={{ width: `${Math.min((currentStudyTime / (user.studyminutes * 60)) * 100, 100)}%` }}
-              ></div>
+              />
             </div>
           </div>
 

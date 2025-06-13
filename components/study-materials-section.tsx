@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   ChevronRight,
   ChevronDown,
+  ChevronLeft,
   BookOpen,
   Clock,
   Brain,
@@ -26,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import StudyNotesViewer from "./study-notes-viewer";
 
 interface StudyMaterialsSectionProps {
   userId: string;
@@ -41,11 +43,13 @@ export default function StudyMaterialsSection({
   const [currentView, setCurrentView] = useState<"files" | "content">("files");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
-  const [selectedFile, setSelectedFile] = useState<StudyMaterial | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<StudyMaterial | null>(null);
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [error, setError] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
 
   // Fetch materials from Supabase
   const fetchMaterials = async () => {
@@ -124,7 +128,7 @@ export default function StudyMaterialsSection({
   };
 
   const openFile = (file: StudyMaterial) => {
-    setSelectedFile(file);
+    setSelectedMaterial(file);
     setCurrentView("content");
   };
 
@@ -168,6 +172,19 @@ export default function StudyMaterialsSection({
         throw storageError;
       }
 
+      // Delete associated study notes if they exist
+      if (material.content_hash) {
+        const { error: notesError } = await supabase
+          .from("study_notes")
+          .delete()
+          .eq("content_hash", material.content_hash);
+
+        if (notesError) {
+          console.error("Error deleting study notes:", notesError);
+          // Continue with material deletion even if notes deletion fails
+        }
+      }
+
       // Delete from database
       const { error: dbError } = await supabase
         .from("study_materials")
@@ -202,6 +219,66 @@ export default function StudyMaterialsSection({
       month: "short",
       day: "numeric",
     });
+  };
+
+  const generateNotes = async (material: StudyMaterial) => {
+    try {
+      setIsGeneratingNotes(true);
+      console.log("Starting note generation for material:", material.id);
+
+      // Get the file from Supabase storage
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from("pdf-uploads")
+        .download(material.file_path);
+
+      if (downloadError) {
+        console.error("Error downloading file:", downloadError);
+        throw downloadError;
+      }
+
+      console.log("File downloaded successfully");
+
+      // Create form data
+      const formData = new FormData();
+      formData.append("file", fileData, material.file_path.split("/").pop());
+      formData.append("subject", material.subject);
+      formData.append("content_hash", material.content_hash!);
+
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("No active session found");
+        throw new Error("Not authenticated");
+      }
+
+      console.log("Sending file to backend for processing...");
+
+      // Send to backend
+      const response = await fetch("http://localhost:5000/api/process-pdf", {
+        method: "POST",
+        headers: {
+          "X-User-ID": session.user.id,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Backend error:", data.error);
+        throw new Error(data.error || "Failed to generate notes");
+      }
+
+      console.log("Notes generated successfully:", data);
+
+      // Refresh the materials list
+      await fetchMaterials();
+    } catch (err: any) {
+      console.error("Error generating notes:", err);
+      setError(err.message || "Failed to generate notes");
+    } finally {
+      setIsGeneratingNotes(false);
+    }
   };
 
   const renderFilesView = () => {
@@ -324,14 +401,15 @@ export default function StudyMaterialsSection({
                     {files.map((material) => (
                       <div
                         key={material.id}
-                        className="flex items-center p-4 pl-12 hover:bg-indigo-50 transition border-b border-indigo-50 last:border-b-0"
+                        onClick={() => openFile(material)}
+                        className="flex items-center p-4 pl-12 hover:bg-indigo-50 transition border-b border-indigo-50 last:border-b-0 cursor-pointer group"
                       >
                         <div className="bg-gradient-to-br from-red-100 to-rose-100 p-2 rounded-lg mr-3">
                           <FileText className="text-red-500" size={18} />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">
+                          <p className="font-medium text-gray-900 truncate group-hover:text-indigo-600">
                             {material.name}
                           </p>
                           <p className="text-sm text-gray-500">
@@ -341,35 +419,32 @@ export default function StudyMaterialsSection({
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openFile(material)}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                          >
-                            <BookOpen size={16} className="mr-1" />
-                            View
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                onClick={(e) => e.stopPropagation()} // Prevent row click when clicking dropdown
                               >
                                 <MoreHorizontal size={16} />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => downloadFile(material)}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click when clicking menu items
+                                  downloadFile(material);
+                                }}
                               >
                                 <Download className="h-4 w-4 mr-2" />
                                 Download
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => deleteFile(material)}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click when clicking menu items
+                                  deleteFile(material);
+                                }}
                                 className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -391,7 +466,7 @@ export default function StudyMaterialsSection({
   };
 
   const renderContentView = () => {
-    if (!selectedFile) return null;
+    if (!selectedMaterial) return null;
 
     return (
       <div className="space-y-6">
@@ -399,35 +474,34 @@ export default function StudyMaterialsSection({
           <Button
             onClick={() => setCurrentView("files")}
             variant="outline"
-            className="border-gray-200 hover:bg-gray-50"
+            className="border-gray-200 hover:bg-gray-50 flex items-center"
           >
+            <ChevronLeft className="h-4 w-4" />
             Back to Files
           </Button>
 
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={() => downloadFile(selectedFile)}
-              variant="outline"
-              className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
-            >
-              <Download size={16} className="mr-2" />
-              Download
-            </Button>
-          </div>
+          <Button
+            onClick={() => downloadFile(selectedMaterial)}
+            variant="outline"
+            className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+          >
+            <Download size={16} className="mr-2" />
+            Download
+          </Button>
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                {selectedFile.name.replace(/\.[^/.]+$/, "")}
+                {selectedMaterial.name.replace(/\.[^/.]+$/, "")}
               </h2>
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
-                  {selectedFile.subject}
+                  {selectedMaterial.subject}
                 </span>
-                <span>{formatFileSize(selectedFile.file_size)}</span>
-                <span>{formatDate(selectedFile.uploaded_at)}</span>
+                <span>{formatFileSize(selectedMaterial.file_size)}</span>
+                <span>{formatDate(selectedMaterial.uploaded_at)}</span>
               </div>
             </div>
           </div>
@@ -441,7 +515,7 @@ export default function StudyMaterialsSection({
                 <div>
                   <p className="text-sm text-gray-600">Uploaded</p>
                   <p className="font-medium">
-                    {formatDate(selectedFile.uploaded_at)}
+                    {formatDate(selectedMaterial.uploaded_at)}
                   </p>
                 </div>
               </div>
@@ -455,7 +529,7 @@ export default function StudyMaterialsSection({
                 <div>
                   <p className="text-sm text-gray-600">File Size</p>
                   <p className="font-medium">
-                    {formatFileSize(selectedFile.file_size)}
+                    {formatFileSize(selectedMaterial.file_size)}
                   </p>
                 </div>
               </div>
@@ -468,33 +542,56 @@ export default function StudyMaterialsSection({
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Subject</p>
-                  <p className="font-medium">{selectedFile.subject}</p>
+                  <p className="font-medium">{selectedMaterial.subject}</p>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100">
-            <h3 className="text-lg font-medium mb-4 text-indigo-800">
-              Study Material Actions
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Notes Section */}
+        <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
+          {isGeneratingNotes ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-4" />
+                <p className="text-gray-600">Generating study notes...</p>
+              </div>
+            </div>
+          ) : selectedMaterial.content_hash ? (
+            <StudyNotesViewer
+              materialId={selectedMaterial.id}
+              contentHash={selectedMaterial.content_hash}
+              onClose={() => { }}
+              onNotesNotFound={() => {
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600 mb-4">This material hasn't been processed for notes yet.</p>
+                    <Button
+                      onClick={() => generateNotes(selectedMaterial)}
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    >
+                      <Brain size={16} className="mr-2" />
+                      Generate Notes
+                    </Button>
+                  </div>
+                );
+              }}
+              onGenerateNotes={() => generateNotes(selectedMaterial)}
+              isGenerating={isGeneratingNotes}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">This material hasn't been processed for notes yet.</p>
               <Button
-                onClick={() => downloadFile(selectedFile)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                onClick={() => generateNotes(selectedMaterial)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                Generate Quiz (Coming Soon)
+                <Brain size={16} className="mr-2" />
+                Generate Notes
               </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     );

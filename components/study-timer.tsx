@@ -22,7 +22,7 @@ export function StudyTimer() {
     useEffect(() => {
         const loadState = () => {
             const savedState = localStorage.getItem(STORAGE_KEY);
-            console.log("Loading saved state:", savedState);
+            // console.log("Loading saved state:", savedState);
 
             if (savedState) {
                 try {
@@ -68,7 +68,7 @@ export function StudyTimer() {
             lastActiveTimestamp: Date.now(),
             currentDay: new Date().toDateString(),
         };
-        console.log("Saving timer state:", state);
+        // console.log("Saving timer state:", state);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }, [time, isRunning, isInitialized]);
 

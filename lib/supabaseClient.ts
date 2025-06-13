@@ -24,4 +24,5 @@ export type StudyMaterial = {
   uploaded_at: string
   user_id: string
   file_type: string
+  content_hash?: string  // Optional since it may not exist for older uploads
 }

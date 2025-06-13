@@ -42,12 +42,18 @@ export default function StudyCoachApp({ initialUser, onComplete }: StudyCoachApp
   }
 
   const handleComplete = () => {
-    onComplete({
-      examdate,
+    const updateData: Partial<User> = {
       studyminutes,
       flashcardtarget,
       completedonboarding: true,
-    })
+    };
+
+    // Only include examdate if it's not empty
+    if (examdate.trim()) {
+      updateData.examdate = examdate;
+    }
+
+    onComplete(updateData);
   }
 
   const renderStep = () => {
