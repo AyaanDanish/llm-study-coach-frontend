@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ArrowLeft, Mail, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabaseClient"
@@ -15,30 +15,71 @@ export default function EmailConfirmation({ email, onResendConfirmation, onBackT
   const [isResending, setIsResending] = useState(false)
   const [resendCount, setResendCount] = useState(0)
   const router = useRouter()
+  const [isChecking, setIsChecking] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Create a broadcast channel to listen for email confirmation
+    // Listen for email confirmation broadcast
     const channel = new BroadcastChannel("email_confirmation")
-
-    // Listen for the confirmation message
     channel.onmessage = async (event) => {
       if (event.data === "email_confirmed") {
-        // Get the current session to check if user needs onboarding
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("completedonboarding")
-            .eq("id", session.user.id)
-            .single()
+        // Clear any existing intervals
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current)
+          checkIntervalRef.current = null
+        }
 
-          router.push("/")
+        try {
+          // Get the latest session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+          if (sessionError) throw sessionError
+
+          if (session?.user?.email_confirmed_at) {
+            // Refresh the page to update the UI
+            router.refresh()
+            router.push("/")
+          }
+        } catch (err) {
+          console.error("Error after email confirmation:", err)
+          setError("Failed to update session after email confirmation")
         }
       }
     }
 
-    // Clean up the channel when component unmounts
+    // Start checking for email confirmation
+    const checkEmailConfirmation = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) throw sessionError
+
+        if (session?.user?.email_confirmed_at) {
+          setIsChecking(false)
+          if (checkIntervalRef.current) {
+            clearInterval(checkIntervalRef.current)
+            checkIntervalRef.current = null
+          }
+          router.refresh()
+          router.push("/")
+        }
+      } catch (err) {
+        console.error("Error checking email confirmation:", err)
+        setError("Failed to check email confirmation status")
+        setIsChecking(false)
+      }
+    }
+
+    // Check immediately and then every 2 seconds
+    checkEmailConfirmation()
+    checkIntervalRef.current = setInterval(checkEmailConfirmation, 2000)
+
     return () => {
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current)
+        checkIntervalRef.current = null
+      }
       channel.close()
     }
   }, [router])
