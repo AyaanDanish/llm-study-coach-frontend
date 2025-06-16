@@ -17,7 +17,8 @@ build:
   script:
     - npm install --legacy-peer-deps
     - npm run build
-    - cp -r .next/static public/_next/static
+    - mkdir -p public/_next/static
+    - cp -r .next/static/* public/_next/static/
   artifacts:
     paths:
       - public/
