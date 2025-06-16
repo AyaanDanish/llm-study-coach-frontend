@@ -1,5 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5", // Indigo-600
+};
 
 export const metadata: Metadata = {
   title: "LLM Study Coach",
@@ -25,7 +29,6 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/manifest.json",
-  themeColor: "#4f46e5", // Indigo-600
 };
 
 export default function RootLayout({
