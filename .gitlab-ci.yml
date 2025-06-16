@@ -17,18 +17,20 @@ build:
   script:
     - npm install --legacy-peer-deps
     - npm run build
+    - cp -r .next/static public/_next/static
   artifacts:
     paths:
-      - .next/
       - public/
-      - package.json
-      - package-lock.json
+      - .next/
     expire_in: 1 week
 
-deploy:
+pages:
   stage: deploy
   script:
-    - npm install -g serve
-    - serve -s .next -l 3000
-  only:
-    - main 
+    - cp -r public/* .
+    - cp -r .next/static _next/static
+  artifacts:
+    paths:
+      - .
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
