@@ -254,7 +254,7 @@ export default function StudyMaterialsSection({
       console.log("Sending file to backend for processing...");
 
       // Send to backend
-      const response = await fetch("http://localhost:5000/api/process-pdf", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:5000'}/api/process-pdf`, {
         method: "POST",
         headers: {
           "X-User-ID": session.user.id,

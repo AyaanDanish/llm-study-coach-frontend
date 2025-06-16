@@ -103,7 +103,7 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
       formData.append("subject", subject.trim())
 
       // Send to backend to generate hash
-      const response = await fetch("http://localhost:5000/api/generate-hash", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:5000'}/api/generate-hash`, {
         method: "POST",
         headers: {
           "X-User-ID": session.user.id,
