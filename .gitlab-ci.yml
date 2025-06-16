@@ -2,7 +2,7 @@ image: node:18-alpine
 
 stages:
   - build
-  - deploy
+  - test
 
 cache:
   paths:
@@ -17,21 +17,15 @@ build:
   script:
     - npm install --legacy-peer-deps
     - npm run build
-    - mkdir -p public/_next/static
-    - cp -r .next/static/* public/_next/static/
   artifacts:
     paths:
-      - public/
       - .next/
     expire_in: 1 week
 
-pages:
-  stage: deploy
+test:
+  stage: test
   script:
-    - cp -r public/* .
-    - cp -r .next/static _next/static
-  artifacts:
-    paths:
-      - .
+    - npm install --legacy-peer-deps
+    - npm run test
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH 
