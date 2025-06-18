@@ -43,7 +43,8 @@ export default function StudyMaterialsSection({
   const [currentView, setCurrentView] = useState<"files" | "content">("files");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
-  const [selectedMaterial, setSelectedMaterial] = useState<StudyMaterial | null>(null);
+  const [selectedMaterial, setSelectedMaterial] =
+    useState<StudyMaterial | null>(null);
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -245,7 +246,9 @@ export default function StudyMaterialsSection({
       formData.append("content_hash", material.content_hash!);
 
       // Get user session
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         console.error("No active session found");
         throw new Error("Not authenticated");
@@ -254,13 +257,18 @@ export default function StudyMaterialsSection({
       console.log("Sending file to backend for processing...");
 
       // Send to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:5000'}/api/process-pdf`, {
-        method: "POST",
-        headers: {
-          "X-User-ID": session.user.id,
-        },
-        body: formData,
-      });
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
+        }/api/process-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "X-User-ID": session.user.id,
+          },
+          body: formData,
+        }
+      );
 
       const data = await response.json();
 
@@ -562,11 +570,13 @@ export default function StudyMaterialsSection({
             <StudyNotesViewer
               materialId={selectedMaterial.id}
               contentHash={selectedMaterial.content_hash}
-              onClose={() => { }}
+              onClose={() => {}}
               onNotesNotFound={() => {
                 return (
                   <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">This material hasn't been processed for notes yet.</p>
+                    <p className="text-gray-600 mb-4">
+                      This material hasn't been processed for notes yet.
+                    </p>
                     <Button
                       onClick={() => generateNotes(selectedMaterial)}
                       className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
@@ -582,7 +592,9 @@ export default function StudyMaterialsSection({
             />
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">This material hasn't been processed for notes yet.</p>
+              <p className="text-gray-600 mb-4">
+                This material hasn't been processed for notes yet.
+              </p>
               <Button
                 onClick={() => generateNotes(selectedMaterial)}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"

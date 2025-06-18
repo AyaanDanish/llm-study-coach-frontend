@@ -1,120 +1,142 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useCallback } from "react"
-import { Upload, FileText, X, Loader2 } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabaseClient"
+import type React from "react";
+import { useState, useCallback } from "react";
+import { Upload, FileText, X, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabaseClient";
 
 interface UploadDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onUploadSuccess: () => void
-  userId: string
+  isOpen: boolean;
+  onClose: () => void;
+  onUploadSuccess: () => void;
+  userId: string;
 }
 
-export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId }: UploadDialogProps) {
-  const [dragActive, setDragActive] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [subject, setSubject] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState("")
+export default function UploadDialog({
+  isOpen,
+  onClose,
+  onUploadSuccess,
+  userId,
+}: UploadDialogProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [subject, setSubject] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true)
+      setDragActive(true);
     } else if (e.type === "dragleave") {
-      setDragActive(false)
+      setDragActive(false);
     }
-  }, [])
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
 
-    const files = Array.from(e.dataTransfer.files)
-    const pdfFile = files.find((file) => file.type === "application/pdf")
+    const files = Array.from(e.dataTransfer.files);
+    const pdfFile = files.find((file) => file.type === "application/pdf");
 
     if (pdfFile) {
-      setSelectedFile(pdfFile)
-      setError("")
+      setSelectedFile(pdfFile);
+      setError("");
     } else {
-      setError("Please select a PDF file")
+      setError("Please select a PDF file");
     }
-  }, [])
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file && file.type === "application/pdf") {
-      setSelectedFile(file)
-      setError("")
+      setSelectedFile(file);
+      setError("");
     } else {
-      setError("Please select a PDF file")
+      setError("Please select a PDF file");
     }
-  }
+  };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
+  };
 
   const handleUpload = async () => {
     if (!selectedFile || !subject.trim()) {
-      setError("Please select a file and enter a subject name")
-      return
+      setError("Please select a file and enter a subject name");
+      return;
     }
 
-    setUploading(true)
-    setError("")
+    setUploading(true);
+    setError("");
 
     try {
       // Generate unique filename
-      const fileExt = selectedFile.name.split(".").pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `${userId}/${fileName}`
+      const fileExt = selectedFile.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
 
       // Upload file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("pdf-uploads")
-        .upload(filePath, selectedFile)
+        .upload(filePath, selectedFile);
 
       if (uploadError) {
-        throw uploadError
+        throw uploadError;
       }
 
       // Get user session for authentication
-      const { data: { session } } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error("Not authenticated")
+        throw new Error("Not authenticated");
       }
 
       // Create form data to send to backend for hash generation
-      const formData = new FormData()
-      formData.append("file", selectedFile)
-      formData.append("subject", subject.trim())
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("subject", subject.trim());
 
       // Send to backend to generate hash
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:5000'}/api/generate-hash`, {
-        method: "POST",
-        headers: {
-          "X-User-ID": session.user.id,
-        },
-        body: formData,
-      })
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
+        }/api/generate-hash`,
+        {
+          method: "POST",
+          headers: {
+            "X-User-ID": session.user.id,
+          },
+          body: formData,
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate content hash")
+        throw new Error(data.error || "Failed to generate content hash");
       }
 
       // Save file metadata to database with the generated hash
@@ -125,39 +147,39 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
         file_size: selectedFile.size,
         user_id: userId,
         file_type: "pdf",
-        content_hash: data.content_hash  // Use the hash generated by the backend
-      })
+        content_hash: data.content_hash, // Use the hash generated by the backend
+      });
 
       if (dbError) {
-        throw dbError
+        throw dbError;
       }
 
       // Reset form and close dialog
-      setSelectedFile(null)
-      setSubject("")
-      onUploadSuccess()
-      onClose()
+      setSelectedFile(null);
+      setSubject("");
+      onUploadSuccess();
+      onClose();
     } catch (err: any) {
-      console.error("Upload error:", err)
-      setError(err.message || "Failed to upload file")
+      console.error("Upload error:", err);
+      setError(err.message || "Failed to upload file");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const resetDialog = () => {
-    setSelectedFile(null)
-    setSubject("")
-    setError("")
-    setDragActive(false)
-  }
+    setSelectedFile(null);
+    setSubject("");
+    setError("");
+    setDragActive(false);
+  };
 
   const handleClose = () => {
     if (!uploading) {
-      resetDialog()
-      onClose()
+      resetDialog();
+      onClose();
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -167,7 +189,10 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
             <Upload className="h-5 w-5 text-indigo-600" />
             Upload Study Material
           </DialogTitle>
-          <DialogDescription>Upload a PDF file and categorize it by subject for easy organization.</DialogDescription>
+          <DialogDescription>
+            Upload a PDF file and categorize it by subject for easy
+            organization.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -189,10 +214,11 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
 
             {!selectedFile ? (
               <div
-                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragActive
-                  ? "border-indigo-500 bg-indigo-50"
-                  : "border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50"
-                  }`}
+                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                  dragActive
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50"
+                }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -213,9 +239,14 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
 
                   <div>
                     <p className="text-lg font-medium text-gray-900">
-                      Drop your PDF here, or <span className="text-indigo-600 hover:text-indigo-700">browse</span>
+                      Drop your PDF here, or{" "}
+                      <span className="text-indigo-600 hover:text-indigo-700">
+                        browse
+                      </span>
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">Supports PDF files up to 10MB</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Supports PDF files up to 10MB
+                    </p>
                   </div>
                 </div>
               </div>
@@ -227,8 +258,12 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
                       <FileText className="h-5 w-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                      <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                      <p className="font-medium text-gray-900">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {formatFileSize(selectedFile.size)}
+                      </p>
                     </div>
                   </div>
 
@@ -256,7 +291,11 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3">
-            <Button variant="outline" onClick={handleClose} disabled={uploading}>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={uploading}
+            >
               Cancel
             </Button>
 
@@ -281,5 +320,5 @@ export default function UploadDialog({ isOpen, onClose, onUploadSuccess, userId 
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
