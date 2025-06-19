@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import type { User } from "@/components/auth-wrapper"
+import { useState, useEffect } from "react";
+import type { User } from "@/components/auth-wrapper";
 import {
   BookOpen,
   Clock,
@@ -14,12 +14,12 @@ import {
   UserIcon,
   BarChart,
   BookOpenCheck,
-  Brain,
+  Flame,
   Lightbulb,
   ChevronRight,
   Loader2,
   CheckCircle,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -33,54 +33,71 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import FlashcardSection from "@/components/flashcard-section"
-import StudyMaterialsSection from "@/components/study-materials-section"
-import ProgressSection from "@/components/progress-section"
-import { supabase } from "@/lib/supabaseClient"
-import { StudyTimer } from "@/components/study-timer"
+} from "@/components/ui/sidebar";
+import FlashcardSection from "@/components/flashcard-section";
+import StudyMaterialsSection from "@/components/study-materials-section";
+import ProgressSection from "@/components/progress-section";
+import { supabase } from "@/lib/supabaseClient";
+import { StudyTimer } from "@/components/study-timer";
 
 type DashboardProps = {
-  user: User
-}
+  user: User;
+};
 
-type DashboardView = "overview" | "flashcards" | "materials" | "progress" | "settings"
+type DashboardView =
+  | "overview"
+  | "flashcards"
+  | "materials"
+  | "progress"
+  | "settings";
 
 export default function Dashboard({ user }: DashboardProps) {
-  const [currentView, setCurrentView] = useState<DashboardView>("overview")
+  const [currentView, setCurrentView] = useState<DashboardView>("overview");
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error("Logout error:", error)
-        alert("Error logging out")
-        return
+        console.error("Logout error:", error);
+        alert("Error logging out");
+        return;
       }
       // The auth state change will be handled by the AuthWrapper
-      window.location.href = "/"
+      window.location.href = "/";
     } catch (error) {
-      console.error("Logout error:", error)
-      alert("Error logging out")
+      console.error("Logout error:", error);
+      alert("Error logging out");
     }
-  }
+  };
 
   const renderContent = () => {
     switch (currentView) {
       case "overview":
-        return <OverviewContent user={user} setCurrentView={setCurrentView} currentView={currentView} />
+        return (
+          <OverviewContent
+            user={user}
+            setCurrentView={setCurrentView}
+            currentView={currentView}
+          />
+        );
       case "flashcards":
-        return <FlashcardSection />
+        return <FlashcardSection />;
       case "materials":
-        return <StudyMaterialsSection userId={user.id} />
+        return <StudyMaterialsSection userId={user.id} />;
       case "progress":
-        return <ProgressSection user={user} />
+        return <ProgressSection user={user} />;
       case "settings":
-        return <SettingsContent user={user} />
+        return <SettingsContent user={user} />;
       default:
-        return <OverviewContent user={user} setCurrentView={setCurrentView} currentView={currentView} />
+        return (
+          <OverviewContent
+            user={user}
+            setCurrentView={setCurrentView}
+            currentView={currentView}
+          />
+        );
     }
-  }
+  };
 
   return (
     <SidebarProvider>
@@ -101,11 +118,16 @@ export default function Dashboard({ user }: DashboardProps) {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel className="text-indigo-800">Main</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-indigo-800">
+                Main
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setCurrentView("overview")} isActive={currentView === "overview"}>
+                    <SidebarMenuButton
+                      onClick={() => setCurrentView("overview")}
+                      isActive={currentView === "overview"}
+                    >
                       <Home size={20} />
                       <span>Overview</span>
                     </SidebarMenuButton>
@@ -132,7 +154,10 @@ export default function Dashboard({ user }: DashboardProps) {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setCurrentView("progress")} isActive={currentView === "progress"}>
+                    <SidebarMenuButton
+                      onClick={() => setCurrentView("progress")}
+                      isActive={currentView === "progress"}
+                    >
                       <BarChart size={20} />
                       <span>Progress</span>
                     </SidebarMenuButton>
@@ -142,7 +167,9 @@ export default function Dashboard({ user }: DashboardProps) {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel className="text-indigo-800">Study Timer</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-indigo-800">
+                Study Timer
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <div className="p-4">
                   <StudyTimer />
@@ -151,11 +178,16 @@ export default function Dashboard({ user }: DashboardProps) {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel className="text-indigo-800">Account</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-indigo-800">
+                Account
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setCurrentView("settings")} isActive={currentView === "settings"}>
+                    <SidebarMenuButton
+                      onClick={() => setCurrentView("settings")}
+                      isActive={currentView === "settings"}
+                    >
                       <Settings size={20} />
                       <span>Settings</span>
                     </SidebarMenuButton>
@@ -204,7 +236,7 @@ export default function Dashboard({ user }: DashboardProps) {
         </main>
       </div>
     </SidebarProvider>
-  )
+  );
 }
 
 function OverviewContent({
@@ -212,81 +244,103 @@ function OverviewContent({
   setCurrentView,
   currentView,
 }: {
-  user: User
-  setCurrentView: React.Dispatch<React.SetStateAction<DashboardView>>
-  currentView: DashboardView
+  user: User;
+  setCurrentView: React.Dispatch<React.SetStateAction<DashboardView>>;
+  currentView: DashboardView;
 }) {
   function useStudyMaterials(userId: string) {
-    const [materials, setMaterials] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const [materials, setMaterials] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
       async function fetchMaterials() {
-        setLoading(true)
+        setLoading(true);
         const { data, error } = await supabase
           .from("study_materials")
           .select("*")
           .eq("user_id", userId)
           .order("uploaded_at", { ascending: false })
-          .limit(3)
+          .limit(3);
 
-        if (error) console.error(error)
-        else setMaterials(data || [])
+        if (error) console.error(error);
+        else setMaterials(data || []);
 
-        setLoading(false)
+        setLoading(false);
       }
 
       if (userId && userId !== "placeholder-user") {
-        fetchMaterials()
+        fetchMaterials();
       } else {
-        setLoading(false)
+        setLoading(false);
       }
-    }, [userId])
+    }, [userId]);
 
-    return { materials, loading }
+    return { materials, loading };
   }
 
-  const { materials, loading } = useStudyMaterials(user.id)
-
-  // Get current study time from localStorage
+  const { materials, loading } = useStudyMaterials(user.id); // Get current study time from database
   const [currentStudyTime, setCurrentStudyTime] = useState(0);
+  const [dailyTarget, setDailyTarget] = useState(30); // Default 30 minutes
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [flashcardsCompleted, setFlashcardsCompleted] = useState(0);
+  const [isFlashcardsComplete, setIsFlashcardsComplete] = useState(false);
 
   useEffect(() => {
-    const loadTimerState = () => {
-      const savedState = localStorage.getItem("study-timer-state");
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState);
-          const today = new Date().toDateString();
+    const loadStudyProgress = async () => {
+      try {
+        // Get user's daily target
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("studyminutes")
+          .eq("id", user.id)
+          .single();
 
-          // Only use the time if it's from today
-          if (state.currentDay === today) {
-            setCurrentStudyTime(state.time);
-          }
-        } catch (error) {
-          console.error("Error loading timer state:", error);
+        if (profile) {
+          setDailyTarget(profile.studyminutes || 30);
+        } // Get today's study record for current streak and flashcard progress
+        const today = new Date().toISOString().split("T")[0];
+        const { data: studyRecord } = await supabase
+          .from("daily_study_records")
+          .select(
+            "study_time_minutes, current_streak, flashcards_completed, is_flashcards_complete"
+          )
+          .eq("user_id", user.id)
+          .eq("date", today)
+          .single();
+
+        if (studyRecord) {
+          setCurrentStudyTime(studyRecord.study_time_minutes * 60); // Convert to seconds
+          setCurrentStreak(studyRecord.current_streak || 0);
+          setFlashcardsCompleted(studyRecord.flashcards_completed || 0);
+          setIsFlashcardsComplete(studyRecord.is_flashcards_complete || false);
         }
+      } catch (error) {
+        console.error("Error loading study progress:", error);
       }
     };
 
-    loadTimerState();
-    // Update every second to keep in sync with timer
-    const interval = setInterval(loadTimerState, 1000);
+    loadStudyProgress();
+    // Update every 10 seconds to keep in sync with timer
+    const interval = setInterval(loadStudyProgress, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user.id]);
 
   const formatStudyTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} minutes`;
   };
-
-  const remainingStudyTime = Math.max(0, user.studyminutes - Math.floor(currentStudyTime / 60));
-  const isGoalComplete = currentStudyTime >= user.studyminutes * 60; // Convert minutes to seconds
+  const remainingStudyTime = Math.max(
+    0,
+    dailyTarget - Math.floor(currentStudyTime / 60)
+  );
+  const isGoalComplete = currentStudyTime >= dailyTarget * 60; // Convert minutes to seconds
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
-        <h2 className="text-lg font-medium mb-4 text-indigo-800">Welcome back, {user.nickname}!</h2>
+        <h2 className="text-lg font-medium mb-4 text-indigo-800">
+          Welcome back, {user.nickname}!
+        </h2>
         <p className="text-gray-600">Here's your study plan for today:</p>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -298,7 +352,9 @@ function OverviewContent({
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Study Time</p>
-                  <p className="font-medium">{remainingStudyTime} minutes remaining</p>
+                  <p className="font-medium">
+                    {remainingStudyTime} minutes remaining
+                  </p>
                 </div>
               </div>
               {isGoalComplete && (
@@ -306,35 +362,52 @@ function OverviewContent({
                   <CheckCircle className="text-green-600" size={20} />
                 </div>
               )}
-            </div>
+            </div>{" "}
             <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                style={{ width: `${Math.min((currentStudyTime / (user.studyminutes * 60)) * 100, 100)}%` }}
+                style={{
+                  width: `${Math.min(
+                    (currentStudyTime / (dailyTarget * 60)) * 100,
+                    100
+                  )}%`,
+                }}
               />
             </div>
-          </div>
-
+          </div>{" "}
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl shadow-sm border border-green-100 transform transition-transform hover:scale-105">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-green-100 to-emerald-100 p-2 rounded-full">
-                <BookOpenCheck className="text-green-600" size={20} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-br from-green-100 to-emerald-100 p-2 rounded-full">
+                  <BookOpenCheck className="text-green-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Flashcards</p>
+                  <p className="font-medium">
+                    {flashcardsCompleted} of {user.flashcardtarget} cards
+                    completed
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Flashcards</p>
-                <p className="font-medium">{user.flashcardtarget} cards to review</p>
-              </div>
+              {isFlashcardsComplete && (
+                <div className="bg-green-100 p-2 rounded-full">
+                  <CheckCircle className="text-green-600" size={20} />
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 rounded-xl shadow-sm border border-purple-100 transform transition-transform hover:scale-105">
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 rounded-xl shadow-sm border border-orange-100 transform transition-transform hover:scale-105">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-purple-100 to-fuchsia-100 p-2 rounded-full">
-                <Brain className="text-purple-600" size={20} />
+              <div className="bg-gradient-to-br from-orange-100 to-red-100 p-2 rounded-full">
+                <Flame className="text-orange-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Focus Topics</p>
-                <p className="font-medium">3 topics today</p>
+                <p className="text-sm text-gray-600">Current Streak</p>
+                <p className="font-medium">
+                  {currentStreak > 0
+                    ? `${currentStreak} days`
+                    : "Start your streak!"}
+                </p>
               </div>
             </div>
           </div>
@@ -344,7 +417,9 @@ function OverviewContent({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-indigo-800">Study Materials</h2>
+            <h2 className="text-lg font-medium text-indigo-800">
+              Study Materials
+            </h2>
             <button
               className="text-indigo-600 text-sm font-medium hover:underline"
               onClick={() => setCurrentView("materials")}
@@ -355,7 +430,9 @@ function OverviewContent({
 
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-gray-500">Loading study materials...</p>
+              <p className="text-sm text-gray-500">
+                Loading study materials...
+              </p>
             ) : materials.length === 0 ? (
               <div className="text-sm text-gray-500 bg-indigo-50 p-4 rounded-lg text-center h-64 flex items-center justify-center flex-col">
                 <p>You haven't uploaded any study materials yet</p>
@@ -377,7 +454,9 @@ function OverviewContent({
                   </div>
                   <div className="flex-1">
                     <p className="font-medium truncate">{item.name}</p>
-                    <p className="text-sm text-gray-500">{item.subject || "Unknown Subject"}</p>
+                    <p className="text-sm text-gray-500">
+                      {item.subject || "Unknown Subject"}
+                    </p>
                   </div>
                   <ChevronRight size={18} className="text-indigo-400" />
                 </div>
@@ -388,7 +467,9 @@ function OverviewContent({
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-indigo-800">Weekly Progress</h2>
+            <h2 className="text-lg font-medium text-indigo-800">
+              Weekly Progress
+            </h2>
             <button
               className="text-indigo-600 text-sm font-medium hover:underline"
               onClick={() => setCurrentView("progress")}
@@ -404,7 +485,10 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">8/14 hours</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: "57%" }}></div>
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                  style={{ width: "57%" }}
+                ></div>
               </div>
             </div>
 
@@ -414,7 +498,10 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">85/140 cards</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: "61%" }}></div>
+                <div
+                  className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                  style={{ width: "61%" }}
+                ></div>
               </div>
             </div>
 
@@ -424,7 +511,10 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">12/15 topics</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500" style={{ width: "80%" }}></div>
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
+                  style={{ width: "80%" }}
+                ></div>
               </div>
             </div>
 
@@ -434,7 +524,10 @@ function OverviewContent({
                 <span className="text-sm text-gray-500">85% average</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: "85%" }}></div>
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
+                  style={{ width: "85%" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -443,8 +536,12 @@ function OverviewContent({
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-indigo-800">AI-Generated Study Tips</h2>
-          <button className="text-indigo-600 text-sm font-medium hover:underline">Refresh</button>
+          <h2 className="text-lg font-medium text-indigo-800">
+            AI-Generated Study Tips
+          </h2>
+          <button className="text-indigo-600 text-sm font-medium hover:underline">
+            Refresh
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -456,7 +553,8 @@ function OverviewContent({
               <p className="font-medium">Spaced Repetition</p>
             </div>
             <p className="text-sm text-gray-600">
-              Review your flashcards at increasing intervals to improve long-term retention.
+              Review your flashcards at increasing intervals to improve
+              long-term retention.
             </p>
           </div>
 
@@ -467,7 +565,10 @@ function OverviewContent({
               </div>
               <p className="font-medium">Active Recall</p>
             </div>
-            <p className="text-sm text-gray-600">Test yourself on concepts rather than passively reading your notes.</p>
+            <p className="text-sm text-gray-600">
+              Test yourself on concepts rather than passively reading your
+              notes.
+            </p>
           </div>
 
           <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 rounded-xl shadow-sm border border-purple-100 transform transition-transform hover:scale-105">
@@ -478,13 +579,14 @@ function OverviewContent({
               <p className="font-medium">Pomodoro Technique</p>
             </div>
             <p className="text-sm text-gray-600">
-              Study in focused 25-minute intervals with 5-minute breaks in between.
+              Study in focused 25-minute intervals with 5-minute breaks in
+              between.
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function SettingsContent({ user }: { user: User }) {
@@ -493,26 +595,26 @@ function SettingsContent({ user }: { user: User }) {
     email: user.email || "",
     studyminutes: user.studyminutes,
     flashcardtarget: user.flashcardtarget,
-  })
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target
-    setFormData(prev => ({
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? parseFloat(value) : value
-    }))
-    setError("")
-    setSuccess(false)
-  }
+      [name]: type === "number" ? parseFloat(value) : value,
+    }));
+    setError("");
+    setSuccess(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSaving(true)
-    setError("")
-    setSuccess(false)
+    e.preventDefault();
+    setIsSaving(true);
+    setError("");
+    setSuccess(false);
 
     try {
       const { data, error: updateError } = await supabase
@@ -524,39 +626,43 @@ function SettingsContent({ user }: { user: User }) {
         })
         .eq("id", user.id)
         .select()
-        .single()
+        .single();
 
-      if (updateError) throw updateError
+      if (updateError) throw updateError;
 
-      setSuccess(true)
+      setSuccess(true);
       // Update the user object in the parent component
       // window.location.reload() // Temporary solution to refresh the user data
     } catch (err: any) {
-      console.error("Error updating profile:", err)
-      setError(err.message || "Failed to update profile")
+      console.error("Error updating profile:", err);
+      setError(err.message || "Failed to update profile");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   // Convert minutes to hours for display
   const formatStudyTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
     if (hours === 0) {
-      return `${remainingMinutes} minutes`
+      return `${remainingMinutes} minutes`;
     }
-    return `${hours}h ${remainingMinutes}m`
-  }
+    return `${hours}h ${remainingMinutes}m`;
+  };
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-indigo-100">
-        <h2 className="text-lg font-medium mb-6 text-indigo-800">Account Settings</h2>
+        <h2 className="text-lg font-medium mb-6 text-indigo-800">
+          Account Settings
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nickname
+            </label>
             <input
               type="text"
               name="nickname"
@@ -567,7 +673,9 @@ function SettingsContent({ user }: { user: User }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
             <input
               type="email"
               name="email"
@@ -575,11 +683,15 @@ function SettingsContent({ user }: { user: User }) {
               disabled
               className="w-full max-w-md p-2 border border-gray-300 rounded-xl bg-gray-50 text-gray-500"
             />
-            <p className="mt-1 text-sm text-gray-500">Email cannot be changed</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Email cannot be changed
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Study Time</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Daily Study Time
+            </label>
             <input
               type="number"
               name="studyminutes"
@@ -590,11 +702,15 @@ function SettingsContent({ user }: { user: User }) {
               step="1"
               className="w-full max-w-md p-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
-            <p className="mt-1 text-sm text-gray-500">Current goal: {formatStudyTime(formData.studyminutes)} per day</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Current goal: {formatStudyTime(formData.studyminutes)} per day
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Daily Flashcard Target</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Daily Flashcard Target
+            </label>
             <input
               type="number"
               name="flashcardtarget"
@@ -615,7 +731,9 @@ function SettingsContent({ user }: { user: User }) {
 
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-3">
-              <p className="text-sm text-green-600">Profile updated successfully!</p>
+              <p className="text-sm text-green-600">
+                Profile updated successfully!
+              </p>
             </div>
           )}
 
@@ -638,5 +756,5 @@ function SettingsContent({ user }: { user: User }) {
         </form>
       </div>
     </div>
-  )
+  );
 }
