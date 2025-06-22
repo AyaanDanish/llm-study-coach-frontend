@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, RefreshCw, Brain } from "lucide-react";
+import { Loader2, RefreshCw, Brain, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
@@ -27,6 +27,7 @@ export default function StudyNotesViewer({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
 
   const fetchNotes = async () => {
     try {
@@ -62,6 +63,50 @@ export default function StudyNotesViewer({
       await fetchNotes(); // Refresh notes after generation
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleGenerateFlashcards = async () => {
+    try {
+      setGeneratingFlashcards(true);
+      setError(null);
+
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Please log in to generate flashcards");
+        return;
+      }
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
+        }/api/generate-flashcards-from-material/${contentHash}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-User-ID": user.id,
+          },
+          body: JSON.stringify({
+            category: "Study Material", // Default category
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate flashcards");
+      }
+
+      // Show success message (you might want to use a toast notification here)
+      alert(`Successfully generated ${data.total_saved} flashcards!`);
+    } catch (err: any) {
+      setError(`Failed to generate flashcards: ${err.message}`);
+    } finally {
+      setGeneratingFlashcards(false);
     }
   };
 
@@ -101,6 +146,7 @@ export default function StudyNotesViewer({
 
   return (
     <div className="space-y-4">
+      {" "}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium text-indigo-800">Study Notes</h3>
@@ -110,11 +156,94 @@ export default function StudyNotesViewer({
             </p>
           )}
         </div>
-      </div>
 
-      <div className="prose prose-indigo max-w-none bg-white p-6 rounded-xl border border-indigo-100">
+        {notes && (
+          <Button
+            onClick={handleGenerateFlashcards}
+            disabled={generatingFlashcards}
+            variant="outline"
+            size="sm"
+            className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 text-purple-700 hover:from-purple-100 hover:to-indigo-100"
+          >
+            {generatingFlashcards ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Generate Flashcards
+              </>
+            )}
+          </Button>
+        )}
+      </div>{" "}
+      <div className="prose prose-indigo prose-lg max-w-none bg-white p-6 rounded-xl border border-indigo-100">
         {notes ? (
-          <ReactMarkdown>{notes}</ReactMarkdown>
+          <ReactMarkdown
+            components={{
+              h1: ({ children }) => (
+                <h1 className="text-2xl font-bold text-indigo-800 mb-4">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-xl font-semibold text-indigo-700 mb-3 mt-6">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-lg font-medium text-indigo-600 mb-2 mt-4">
+                  {children}
+                </h3>
+              ),
+              p: ({ children }) => (
+                <p className="mb-3 text-gray-700 leading-relaxed">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside mb-3 space-y-1">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside mb-3 space-y-1">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="text-gray-700 ml-2">{children}</li>
+              ),
+              strong: ({ children }) => (
+                <strong className="font-semibold text-indigo-800">
+                  {children}
+                </strong>
+              ),
+              em: ({ children }) => (
+                <em className="italic text-gray-600">{children}</em>
+              ),
+              hr: () => <hr className="my-6 border-indigo-200" />,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-indigo-300 pl-4 my-4 italic text-gray-600">
+                  {children}
+                </blockquote>
+              ),
+              code: ({ children, ...props }) => {
+                const isInline = !props.className?.includes("language-");
+                return isInline ? (
+                  <code className="bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded text-sm">
+                    {children}
+                  </code>
+                ) : (
+                  <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                    <code className="text-sm">{children}</code>
+                  </pre>
+                );
+              },
+            }}
+          >
+            {notes}
+          </ReactMarkdown>
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">
@@ -141,6 +270,23 @@ export default function StudyNotesViewer({
           </div>
         )}
       </div>
+      {notes && (
+        <div className="mt-4">
+          <Button
+            onClick={handleGenerateFlashcards}
+            disabled={generatingFlashcards}
+            variant="outline"
+            className="w-full"
+          >
+            {generatingFlashcards ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4 mr-2" />
+            )}
+            Generate Flashcards
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

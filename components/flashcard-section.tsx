@@ -15,9 +15,11 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
+  Brain,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import CreateFlashcardDialog from "./create-flashcard-dialog";
+import GenerateFlashcardsDialog from "./generate-flashcards-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +64,7 @@ export default function FlashcardSection() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [studiedCards, setStudiedCards] = useState<Set<string>>(new Set()); // Track studied cards for today
   const [isMarkingStudied, setIsMarkingStudied] = useState(false);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   // Function to fetch the current user session
   const getSession = useCallback(async () => {
@@ -541,7 +544,6 @@ export default function FlashcardSection() {
                 </option>
               ))}
             </select>
-
             <button
               onClick={() => setCurrentView("study")}
               className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center"
@@ -549,21 +551,26 @@ export default function FlashcardSection() {
               <BookOpen size={18} className="mr-2" />
               Study
             </button>
-
             <button
               onClick={() => setShowAnswers(!showAnswers)}
               className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
               title={showAnswers ? "Hide answers" : "Show answers"}
             >
               {showAnswers ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-
+            </button>{" "}
             <button
               onClick={() => setCreateDialogOpen(true)}
               className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
               title="Create new flashcard"
             >
               <Plus size={18} />
+            </button>
+            <button
+              onClick={() => setGenerateDialogOpen(true)}
+              className="p-2 rounded-xl border border-purple-200 hover:bg-purple-50 text-purple-600 transition-colors"
+              title="Generate AI flashcards"
+            >
+              <Brain size={18} />
             </button>
           </div>
         </div>
@@ -850,7 +857,6 @@ export default function FlashcardSection() {
   return (
     <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100">
       {currentView === "browse" ? renderBrowseView() : renderStudyView()}
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!deletingCard}
@@ -876,7 +882,6 @@ export default function FlashcardSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* Edit Dialog */}
       {editingCard && (
         <CreateFlashcardDialog
@@ -890,13 +895,21 @@ export default function FlashcardSection() {
           editMode={true}
           initialData={editingCard}
         />
-      )}
-
+      )}{" "}
       {/* Existing Create Dialog */}
       {user && !editingCard && (
         <CreateFlashcardDialog
           isOpen={createDialogOpen}
           onClose={() => setCreateDialogOpen(false)}
+          onSuccess={() => fetchFlashcards(user.id)}
+          userId={user.id}
+        />
+      )}
+      {/* AI Generate Dialog */}
+      {user && (
+        <GenerateFlashcardsDialog
+          isOpen={generateDialogOpen}
+          onClose={() => setGenerateDialogOpen(false)}
           onSuccess={() => fetchFlashcards(user.id)}
           userId={user.id}
         />

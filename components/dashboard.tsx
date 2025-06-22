@@ -53,6 +53,14 @@ type DashboardView =
 
 export default function Dashboard({ user }: DashboardProps) {
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(
+    null
+  );
+
+  const handleMaterialSelect = (materialId: string) => {
+    setSelectedMaterialId(materialId);
+    setCurrentView("materials");
+  };
 
   const handleLogout = async () => {
     try {
@@ -69,7 +77,6 @@ export default function Dashboard({ user }: DashboardProps) {
       alert("Error logging out");
     }
   };
-
   const renderContent = () => {
     switch (currentView) {
       case "overview":
@@ -78,12 +85,19 @@ export default function Dashboard({ user }: DashboardProps) {
             user={user}
             setCurrentView={setCurrentView}
             currentView={currentView}
+            onMaterialSelect={handleMaterialSelect}
           />
         );
       case "flashcards":
         return <FlashcardSection />;
       case "materials":
-        return <StudyMaterialsSection userId={user.id} />;
+        return (
+          <StudyMaterialsSection
+            userId={user.id}
+            selectedMaterialId={selectedMaterialId}
+            onClearSelection={() => setSelectedMaterialId(null)}
+          />
+        );
       case "progress":
         return <ProgressSection user={user} />;
       case "settings":
@@ -94,6 +108,7 @@ export default function Dashboard({ user }: DashboardProps) {
             user={user}
             setCurrentView={setCurrentView}
             currentView={currentView}
+            onMaterialSelect={handleMaterialSelect}
           />
         );
     }
@@ -243,10 +258,12 @@ function OverviewContent({
   user,
   setCurrentView,
   currentView,
+  onMaterialSelect,
 }: {
   user: User;
   setCurrentView: React.Dispatch<React.SetStateAction<DashboardView>>;
   currentView: DashboardView;
+  onMaterialSelect: (materialId: string) => void;
 }) {
   function useStudyMaterials(userId: string) {
     const [materials, setMaterials] = useState<any[]>([]);
@@ -447,6 +464,7 @@ function OverviewContent({
               materials.map((item) => (
                 <div
                   key={item.id}
+                  onClick={() => onMaterialSelect(item.id)}
                   className="flex items-center p-3 hover:bg-indigo-50 rounded-xl transition cursor-pointer border border-transparent hover:border-indigo-100"
                 >
                   <div className="bg-gradient-to-br from-indigo-100 to-indigo-200 p-2 rounded-lg mr-3">

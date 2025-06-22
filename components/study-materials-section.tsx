@@ -31,6 +31,8 @@ import StudyNotesViewer from "./study-notes-viewer";
 
 interface StudyMaterialsSectionProps {
   userId: string;
+  selectedMaterialId?: string | null;
+  onClearSelection?: () => void;
 }
 
 type GroupedMaterials = {
@@ -39,6 +41,8 @@ type GroupedMaterials = {
 
 export default function StudyMaterialsSection({
   userId,
+  selectedMaterialId,
+  onClearSelection,
 }: StudyMaterialsSectionProps) {
   const [currentView, setCurrentView] = useState<"files" | "content">("files");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +86,6 @@ export default function StudyMaterialsSection({
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (userId && userId !== "placeholder-user") {
       fetchMaterials();
@@ -90,6 +93,19 @@ export default function StudyMaterialsSection({
       setLoading(false);
     }
   }, [userId]);
+
+  // Handle selectedMaterialId from dashboard
+  useEffect(() => {
+    if (selectedMaterialId && materials.length > 0) {
+      const material = materials.find((m) => m.id === selectedMaterialId);
+      if (material) {
+        setSelectedMaterial(material);
+        setCurrentView("content");
+        // Clear the selection after opening
+        onClearSelection?.();
+      }
+    }
+  }, [selectedMaterialId, materials, onClearSelection]);
 
   // Group materials by subject
   const groupedMaterials: GroupedMaterials = materials.reduce(
@@ -221,11 +237,18 @@ export default function StudyMaterialsSection({
       day: "numeric",
     });
   };
-
   const generateNotes = async (material: StudyMaterial) => {
     try {
       setIsGeneratingNotes(true);
+      setError(""); // Clear any previous errors
       console.log("Starting note generation for material:", material.id);
+
+      // Validate content hash exists
+      if (!material.content_hash) {
+        throw new Error(
+          "Material content hash is missing. Please re-upload the file."
+        );
+      }
 
       // Get the file from Supabase storage
       const { data: fileData, error: downloadError } = await supabase.storage
@@ -234,16 +257,20 @@ export default function StudyMaterialsSection({
 
       if (downloadError) {
         console.error("Error downloading file:", downloadError);
-        throw downloadError;
+        throw new Error(`Failed to download file: ${downloadError.message}`);
       }
 
       console.log("File downloaded successfully");
 
       // Create form data
       const formData = new FormData();
-      formData.append("file", fileData, material.file_path.split("/").pop());
+      formData.append(
+        "file",
+        fileData,
+        material.file_path.split("/").pop() || material.name
+      );
       formData.append("subject", material.subject);
-      formData.append("content_hash", material.content_hash!);
+      formData.append("content_hash", material.content_hash);
 
       // Get user session
       const {
@@ -251,39 +278,48 @@ export default function StudyMaterialsSection({
       } = await supabase.auth.getSession();
       if (!session) {
         console.error("No active session found");
-        throw new Error("Not authenticated");
+        throw new Error("You must be logged in to generate notes");
       }
 
       console.log("Sending file to backend for processing...");
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000";
+      console.log("Backend URL:", backendUrl);
 
       // Send to backend
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
-        }/api/process-pdf`,
-        {
-          method: "POST",
-          headers: {
-            "X-User-ID": session.user.id,
-          },
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
+      const response = await fetch(`${backendUrl}/api/process-pdf`, {
+        method: "POST",
+        headers: {
+          "X-User-ID": session.user.id,
+        },
+        body: formData,
+      });
 
       if (!response.ok) {
-        console.error("Backend error:", data.error);
-        throw new Error(data.error || "Failed to generate notes");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Backend error:", errorData);
+        throw new Error(
+          errorData.error ||
+            `Server error: ${response.status} ${response.statusText}`
+        );
       }
 
+      const data = await response.json();
       console.log("Notes generated successfully:", data);
 
-      // Refresh the materials list
+      // Refresh the materials list to get updated data
       await fetchMaterials();
+
+      // Clear any previous errors on success
+      setError("");
     } catch (err: any) {
       console.error("Error generating notes:", err);
-      setError(err.message || "Failed to generate notes");
+      const errorMessage =
+        err.message || "Failed to generate notes. Please try again.";
+      setError(errorMessage);
+
+      // Also show a user-friendly alert for immediate feedback
+      alert(`Error generating notes: ${errorMessage}`);
     } finally {
       setIsGeneratingNotes(false);
     }
@@ -478,9 +514,13 @@ export default function StudyMaterialsSection({
 
     return (
       <div className="space-y-6">
+        {" "}
         <div className="flex items-center justify-between">
           <Button
-            onClick={() => setCurrentView("files")}
+            onClick={() => {
+              setCurrentView("files");
+              setSelectedMaterial(null);
+            }}
             variant="outline"
             className="border-gray-200 hover:bg-gray-50 flex items-center"
           >
@@ -497,7 +537,6 @@ export default function StudyMaterialsSection({
             Download
           </Button>
         </div>
-
         <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -555,10 +594,23 @@ export default function StudyMaterialsSection({
               </div>
             </div>
           </div>
-        </div>
-
+        </div>{" "}
         {/* Notes Section */}
         <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+              <p className="text-red-600 text-sm">{error}</p>
+              <Button
+                onClick={() => setError("")}
+                variant="ghost"
+                size="sm"
+                className="mt-2 text-red-600 hover:text-red-700 hover:bg-red-100"
+              >
+                Dismiss
+              </Button>
+            </div>
+          )}
+
           {isGeneratingNotes ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -571,22 +623,21 @@ export default function StudyMaterialsSection({
               materialId={selectedMaterial.id}
               contentHash={selectedMaterial.content_hash}
               onClose={() => {}}
-              onNotesNotFound={() => {
-                return (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">
-                      This material hasn't been processed for notes yet.
-                    </p>
-                    <Button
-                      onClick={() => generateNotes(selectedMaterial)}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                    >
-                      <Brain size={16} className="mr-2" />
-                      Generate Notes
-                    </Button>
-                  </div>
-                );
-              }}
+              onNotesNotFound={() => (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    This material hasn't been processed for notes yet.
+                  </p>
+                  <Button
+                    onClick={() => generateNotes(selectedMaterial)}
+                    disabled={isGeneratingNotes}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Brain size={16} className="mr-2" />
+                    {isGeneratingNotes ? "Generating..." : "Generate Notes"}
+                  </Button>
+                </div>
+              )}
               onGenerateNotes={() => generateNotes(selectedMaterial)}
               isGenerating={isGeneratingNotes}
             />
@@ -597,10 +648,11 @@ export default function StudyMaterialsSection({
               </p>
               <Button
                 onClick={() => generateNotes(selectedMaterial)}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                disabled={isGeneratingNotes}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Brain size={16} className="mr-2" />
-                Generate Notes
+                {isGeneratingNotes ? "Generating..." : "Generate Notes"}
               </Button>
             </div>
           )}
