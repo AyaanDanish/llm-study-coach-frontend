@@ -5,6 +5,7 @@ import { useState } from "react"
 import type { User } from "@/components/auth-wrapper"
 import { ArrowLeft, ChevronRight, UserIcon, Lock, BookOpen } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import ForgotPasswordDialog from "./forgot-password-dialog"
 
 type LoginFormProps = {
   onLogin: (userData: { email: string; password: string }) => void
@@ -16,6 +17,7 @@ export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: L
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,7 +144,11 @@ export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: L
               />
             </div>
             <div className="flex justify-end mt-2">
-              <button type="button" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+              <button
+                type="button"
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                onClick={() => setShowForgotPassword(true)}
+              >
                 Forgot password?
               </button>
             </div>
@@ -168,6 +174,9 @@ export default function LoginForm({ onLogin, onBackToLanding, onSignupClick }: L
             </p>
           </div>
         </form>
+        {showForgotPassword && (
+          <ForgotPasswordDialog onClose={() => setShowForgotPassword(false)} />
+        )}
       </div>
     </div>
   )
