@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 
 type SignupFormProps = {
-  onSignup: (userData: { nickname: string; email: string; password: string }) => void;
+  onSignup: (userData: {
+    nickname: string;
+    email: string;
+    password: string;
+  }) => void;
   onBackToLanding: () => void;
   onLoginClick: () => void;
 };
@@ -99,7 +103,10 @@ export default function SignupForm({
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <UserCircleIcon className="text-indigo-500 dark:text-indigo-400" size={18} />
+                <UserCircleIcon
+                  className="text-indigo-500 dark:text-indigo-400"
+                  size={18}
+                />
               </div>
               <input
                 id="nickname"
@@ -116,7 +123,9 @@ export default function SignupForm({
               />
             </div>
             {errors.nickname && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.nickname}</p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {errors.nickname}
+              </p>
             )}
           </div>
 
@@ -130,7 +139,10 @@ export default function SignupForm({
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="text-indigo-500 dark:text-indigo-400" size={18} />
+                <Mail
+                  className="text-indigo-500 dark:text-indigo-400"
+                  size={18}
+                />
               </div>
               <input
                 id="email"
@@ -146,7 +158,9 @@ export default function SignupForm({
               />
             </div>
             {errors.email && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {errors.email}
+              </p>
             )}
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               We&apos;ll use this to personalize your learning experience and
@@ -164,7 +178,10 @@ export default function SignupForm({
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="text-indigo-500 dark:text-indigo-400" size={18} />
+                <Lock
+                  className="text-indigo-500 dark:text-indigo-400"
+                  size={18}
+                />
               </div>
               <input
                 id="password"
@@ -181,7 +198,9 @@ export default function SignupForm({
               />
             </div>
             {errors.password && (
-              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {errors.password}
+              </p>
             )}
           </div>
 
