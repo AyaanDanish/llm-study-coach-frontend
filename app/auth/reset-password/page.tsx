@@ -42,13 +42,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-indigo-700">Set a New Password</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-gray-900 dark:to-indigo-900 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 w-full max-w-md border dark:border-gray-700">
+        <h2 className="text-2xl font-bold mb-4 text-indigo-700 dark:text-indigo-400">Set a New Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="password"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="New password"
             value={password}
             onChange={e => setPassword(e.target.value)}
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
           />
           <input
             type="password"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Confirm new password"
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
@@ -64,14 +64,14 @@ export default function ResetPasswordPage() {
           />
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 transition"
+            className="w-full bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg py-2 font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
         </form>
-        {success && <div className="mt-4 text-green-600 text-sm">{success}</div>}
-        {error && <div className="mt-4 text-red-600 text-sm">{error}</div>}
+        {success && <div className="mt-4 text-green-600 dark:text-green-400 text-sm">{success}</div>}
+        {error && <div className="mt-4 text-red-600 dark:text-red-400 text-sm">{error}</div>}
       </div>
     </div>
   )
