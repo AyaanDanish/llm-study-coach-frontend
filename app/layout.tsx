@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { TimerProvider } from "@/contexts/TimerContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5", // Indigo-600
@@ -7,7 +9,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "LLM Study Coach",
-  description: "Your AI-powered learning assistant for personalized study plans and efficient learning",
+  description:
+    "Your AI-powered learning assistant for personalized study plans and efficient learning",
   generator: "Next.js",
   icons: {
     icon: [
@@ -44,7 +47,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <meta name="theme-color" content="#4f46e5" />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider>
+          <TimerProvider>{children}</TimerProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type Flashcard = {
   id: string;
@@ -48,6 +49,7 @@ type Flashcard = {
 };
 
 export default function FlashcardSection() {
+  const { isDarkMode } = useTheme();
   const [currentDeck, setCurrentDeck] = useState<string>("all");
   const [currentView, setCurrentView] = useState<"browse" | "study">("browse");
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -484,9 +486,11 @@ export default function FlashcardSection() {
   const renderBrowseView = () => {
     if (!user && !loading && error) {
       return (
-        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
-          <p className="text-red-600 font-medium text-lg">{error}</p>
-          <p className="text-gray-500 mt-2">
+        <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-indigo-100 dark:border-gray-700 shadow-sm">
+          <p className="text-red-600 dark:text-red-400 font-medium text-lg">
+            {error}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
             Please log in to view and manage your flashcards.
           </p>
         </div>
@@ -496,18 +500,20 @@ export default function FlashcardSection() {
     if (loading) {
       return (
         <div className="text-center py-12">
-          <p className="text-indigo-600">Loading flashcards...</p>
+          <p className="text-indigo-600 dark:text-indigo-400">
+            Loading flashcards...
+          </p>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="text-center py-12 text-red-600">
+        <div className="text-center py-12 text-red-600 dark:text-red-400">
           <p>{error}</p>
           <button
             onClick={() => (user ? fetchFlashcards(user.id) : getSession())}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
+            className="mt-4 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 transition shadow-md"
           >
             Retry
           </button>
@@ -520,14 +526,17 @@ export default function FlashcardSection() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="text-indigo-400" size={18} />
+              <Search
+                className="text-indigo-400 dark:text-indigo-300"
+                size={18}
+              />
             </div>
             <input
               type="text"
               placeholder="Search flashcards..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-indigo-200 rounded-xl w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80"
+              className="pl-10 pr-4 py-2 border border-indigo-200 dark:border-gray-600 rounded-xl w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100"
             />
           </div>
 
@@ -535,7 +544,7 @@ export default function FlashcardSection() {
             <select
               value={currentDeck}
               onChange={(e) => setCurrentDeck(e.target.value)}
-              className="p-2 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80"
+              className="p-2 border border-indigo-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100"
             >
               <option value="all">All Decks</option>
               {uniqueCategories.map((category) => (
@@ -546,28 +555,28 @@ export default function FlashcardSection() {
             </select>
             <button
               onClick={() => setCurrentView("study")}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 transition shadow-md hover:shadow-lg flex items-center"
             >
               <BookOpen size={18} className="mr-2" />
               Study
             </button>
             <button
               onClick={() => setShowAnswers(!showAnswers)}
-              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
+              className="p-2 rounded-xl border border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition-colors"
               title={showAnswers ? "Hide answers" : "Show answers"}
             >
               {showAnswers ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>{" "}
             <button
               onClick={() => setCreateDialogOpen(true)}
-              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600 transition-colors"
+              className="p-2 rounded-xl border border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition-colors"
               title="Create new flashcard"
             >
               <Plus size={18} />
             </button>
             <button
               onClick={() => setGenerateDialogOpen(true)}
-              className="p-2 rounded-xl border border-purple-200 hover:bg-purple-50 text-purple-600 transition-colors"
+              className="p-2 rounded-xl border border-purple-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-gray-700 text-purple-600 dark:text-purple-400 transition-colors"
               title="Generate AI flashcards"
             >
               <Brain size={18} />
@@ -580,7 +589,7 @@ export default function FlashcardSection() {
             {filteredFlashcards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white border border-indigo-100 rounded-xl p-5 hover:shadow-md transition transform hover:scale-105 hover:border-indigo-300 relative group"
+                className="bg-white dark:bg-gray-800 border border-indigo-100 dark:border-gray-700 rounded-xl p-5 hover:shadow-md transition transform hover:scale-105 hover:border-indigo-300 dark:hover:border-indigo-600 relative group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex gap-2">
@@ -610,7 +619,7 @@ export default function FlashcardSection() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className="p-1 rounded-lg hover:bg-indigo-50 text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"
+                        className="p-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100"
                         title="More options"
                       >
                         <MoreVertical size={16} />
@@ -619,14 +628,14 @@ export default function FlashcardSection() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => setEditingCard(card)}
-                        className="text-indigo-600 cursor-pointer"
+                        className="text-indigo-600 dark:text-indigo-400 cursor-pointer"
                       >
                         <Pencil size={16} className="mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setDeletingCard(card)}
-                        className="text-red-600 cursor-pointer"
+                        className="text-red-600 dark:text-red-400 cursor-pointer"
                       >
                         <Trash2 size={16} className="mr-2" />
                         Delete
@@ -635,9 +644,11 @@ export default function FlashcardSection() {
                   </DropdownMenu>
                 </div>
 
-                <h3 className="font-medium mb-2 line-clamp-2">{card.front}</h3>
+                <h3 className="font-medium mb-2 line-clamp-2 text-gray-900 dark:text-gray-100">
+                  {card.front}
+                </h3>
                 {showAnswers && (
-                  <p className="text-sm text-gray-600 line-clamp-3 mt-2 border-t border-indigo-100 pt-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mt-2 border-t border-indigo-100 dark:border-gray-700 pt-2">
                     {card.back}
                   </p>
                 )}
@@ -645,13 +656,13 @@ export default function FlashcardSection() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
-            <p className="text-gray-500">
+          <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-indigo-100 dark:border-gray-700 shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400">
               No flashcards found. Try a different search or create new ones.
             </p>
             <button
               onClick={() => setCreateDialogOpen(true)}
-              className="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center mx-auto"
+              className="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 transition shadow-md hover:shadow-lg flex items-center mx-auto"
             >
               <Plus size={18} className="mr-2" />
               Create Flashcard
@@ -665,9 +676,11 @@ export default function FlashcardSection() {
   const renderStudyView = () => {
     if (!user && !loading && error) {
       return (
-        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
-          <p className="text-red-600 font-medium text-lg">{error}</p>
-          <p className="text-gray-500 mt-2">
+        <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-indigo-100 dark:border-gray-700 shadow-sm">
+          <p className="text-red-600 dark:text-red-400 font-medium text-lg">
+            {error}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
             Please log in to study your flashcards.
           </p>
           {/* You might add a login button here */}
@@ -678,18 +691,20 @@ export default function FlashcardSection() {
     if (loading) {
       return (
         <div className="text-center py-12">
-          <p className="text-indigo-600">Loading flashcards for study...</p>
+          <p className="text-indigo-600 dark:text-indigo-400">
+            Loading flashcards for study...
+          </p>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="text-center py-12 text-red-600">
+        <div className="text-center py-12 text-red-600 dark:text-red-400">
           <p>{error}</p>
           <button
             onClick={() => (user ? fetchFlashcards(user.id) : getSession())} // Retry or get session
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
+            className="mt-4 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl hover:bg-indigo-700 dark:hover:bg-indigo-600 transition shadow-md"
           >
             Retry
           </button>
@@ -699,19 +714,19 @@ export default function FlashcardSection() {
 
     if (filteredFlashcards.length === 0) {
       return (
-        <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-100 shadow-sm">
-          <p className="text-gray-500">
+        <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-indigo-100 dark:border-gray-700 shadow-sm">
+          <p className="text-gray-500 dark:text-gray-400">
             No flashcards available for study. Try a different deck or create
             new ones.
           </p>
           <div className="mt-4 flex justify-center space-x-4">
             <button
               onClick={() => setCurrentView("browse")}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             >
               Back to Browse
             </button>
-            <button className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center">
+            <button className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 transition shadow-md hover:shadow-lg flex items-center">
               <Plus size={18} className="mr-2" />
               Create Flashcard
             </button>
@@ -727,25 +742,25 @@ export default function FlashcardSection() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => setCurrentView("browse")}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition flex items-center"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center"
           >
             <ChevronLeft size={18} className="mr-1" />
             Back
           </button>
 
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
               {currentCardIndex + 1} of {filteredFlashcards.length}
             </span>
             <button
               onClick={resetCardIndex}
-              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+              className="p-2 rounded-xl border border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400"
               title="Return to first card"
             >
               <Shuffle size={18} />
             </button>
             <button
-              className="p-2 rounded-xl border border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+              className="p-2 rounded-xl border border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400"
               title="Settings"
             >
               <Settings size={18} />
@@ -753,17 +768,21 @@ export default function FlashcardSection() {
           </div>
         </div>{" "}
         {/* Progress indicator */}
-        <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-indigo-100 dark:border-gray-700 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Session Progress</span>
-            <span className="text-sm font-medium text-indigo-600">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Session Progress
+            </span>
+            <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
               {studiedCards.size} studied today
               {studiedCards.size > 0 && (
-                <span className="ml-1 text-xs text-green-600">✓</span>
+                <span className="ml-1 text-xs text-green-600 dark:text-green-400">
+                  ✓
+                </span>
               )}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div
               className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
               style={{
@@ -777,40 +796,42 @@ export default function FlashcardSection() {
           </div>
           {studiedCards.size >= (user?.flashcardtarget || 10) && (
             <div className="mt-2 text-center">
-              <span className="text-green-600 font-medium text-sm">
+              <span className="text-green-600 dark:text-green-400 font-medium text-sm">
                 🎉 Daily flashcard target reached! Great job!
               </span>
             </div>
           )}
         </div>
         <div
-          className="relative bg-white border border-indigo-100 rounded-xl p-6 shadow-md mx-auto max-w-2xl aspect-video cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:border-indigo-300"
+          className="relative bg-white dark:bg-gray-800 border border-indigo-100 dark:border-gray-700 rounded-xl p-6 shadow-md mx-auto max-w-2xl aspect-video cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600"
           onClick={() => setIsFlipped(!isFlipped)}
           style={{ perspective: "1000px" }}
         >
           <div
-            className="absolute inset-0 flex items-center justify-center p-6 backface-hidden transition-transform duration-500 rounded-xl bg-gradient-to-br from-white to-indigo-50"
+            className="absolute inset-0 flex items-center justify-center p-6 backface-hidden transition-transform duration-500 rounded-xl bg-gradient-to-br from-white to-indigo-50 dark:from-gray-800 dark:to-indigo-900/20"
             style={{
               transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
               backfaceVisibility: "hidden",
             }}
           >
-            <h3 className="text-xl font-medium text-center">
+            <h3 className="text-xl font-medium text-center text-gray-900 dark:text-gray-100">
               {currentCard.front}
             </h3>
           </div>
 
           <div
-            className="absolute inset-0 flex items-center justify-center p-6 backface-hidden transition-transform duration-500 rounded-xl bg-gradient-to-br from-white to-purple-50"
+            className="absolute inset-0 flex items-center justify-center p-6 backface-hidden transition-transform duration-500 rounded-xl bg-gradient-to-br from-white to-purple-50 dark:from-gray-800 dark:to-purple-900/20"
             style={{
               transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
               backfaceVisibility: "hidden",
             }}
           >
-            <p className="text-gray-800">{currentCard.back}</p>
+            <p className="text-gray-800 dark:text-gray-200">
+              {currentCard.back}
+            </p>
           </div>
 
-          <div className="absolute bottom-3 right-3 text-sm text-gray-500">
+          <div className="absolute bottom-3 right-3 text-sm text-gray-500 dark:text-gray-400">
             Click to flip
           </div>
         </div>{" "}
@@ -818,7 +839,7 @@ export default function FlashcardSection() {
           <button
             onClick={handlePrevCard}
             disabled={currentCardIndex === 0}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft size={18} className="mr-1" />
             Previous
@@ -829,8 +850,8 @@ export default function FlashcardSection() {
             disabled={isMarkingStudied || studiedCards.has(currentCard.id)}
             className={`px-6 py-2 rounded-xl transition flex items-center ${
               studiedCards.has(currentCard.id)
-                ? "bg-green-100 text-green-800 border border-green-200"
-                : "bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg"
+                ? "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800"
+                : "bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 shadow-md hover:shadow-lg"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <CheckCircle size={18} className="mr-2" />
@@ -844,7 +865,7 @@ export default function FlashcardSection() {
           <button
             onClick={handleNextCard}
             disabled={currentCardIndex === filteredFlashcards.length - 1}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 transition shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
             <ChevronRight size={18} className="ml-1" />
@@ -855,7 +876,7 @@ export default function FlashcardSection() {
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100">
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
       {currentView === "browse" ? renderBrowseView() : renderStudyView()}
       {/* Delete Confirmation Dialog */}
       <AlertDialog
