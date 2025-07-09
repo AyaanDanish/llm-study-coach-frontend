@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, RefreshCw, Brain, Zap } from "lucide-react";
+import { Loader2, RefreshCw, Brain, Zap, Target } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/contexts/ThemeContext";
+import GenerateQuizDialog from "./generate-quiz-dialog";
 
 interface StudyNotesViewerProps {
   materialId: string;
@@ -14,6 +15,8 @@ interface StudyNotesViewerProps {
   onNotesNotFound?: () => React.ReactNode;
   onGenerateNotes: () => Promise<void>;
   isGenerating: boolean;
+  materialName?: string;
+  materialSubject?: string;
 }
 
 export default function StudyNotesViewer({
@@ -23,6 +26,8 @@ export default function StudyNotesViewer({
   onNotesNotFound,
   onGenerateNotes,
   isGenerating,
+  materialName,
+  materialSubject,
 }: StudyNotesViewerProps) {
   const { isDarkMode } = useTheme();
   const [notes, setNotes] = useState<string | null>(null);
@@ -30,6 +35,8 @@ export default function StudyNotesViewer({
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
+  const [quizDialogOpen, setQuizDialogOpen] = useState(false);
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
 
   const fetchNotes = async () => {
     try {
@@ -112,6 +119,18 @@ export default function StudyNotesViewer({
     }
   };
 
+  const handleGenerateQuiz = () => {
+    console.log("Opening quiz dialog with materialId:", materialId);
+    console.log("Material name:", materialName);
+    console.log("Material subject:", materialSubject);
+    setQuizDialogOpen(true);
+  };
+
+  const handleQuizSuccess = () => {
+    setQuizDialogOpen(false);
+    // Quiz generated successfully - user can navigate to Quiz section to see it
+  };
+
   useEffect(() => {
     fetchNotes();
   }, [contentHash]);
@@ -162,25 +181,46 @@ export default function StudyNotesViewer({
         </div>
 
         {notes && (
-          <Button
-            onClick={handleGenerateFlashcards}
-            disabled={generatingFlashcards}
-            variant="outline"
-            size="sm"
-            className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30"
-          >
-            {generatingFlashcards ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4 mr-2" />
-                Generate Flashcards
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGenerateFlashcards}
+              disabled={generatingFlashcards}
+              variant="outline"
+              size="sm"
+              className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30"
+            >
+              {generatingFlashcards ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Generate Flashcards
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleGenerateQuiz}
+              disabled={generatingQuiz}
+              variant="outline"
+              size="sm"
+              className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30"
+            >
+              {generatingQuiz ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Target className="h-4 w-4 mr-2" />
+                  Generate Quiz
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>{" "}
       <div className="prose prose-indigo prose-lg max-w-none bg-white dark:bg-gray-800 p-6 rounded-xl border border-indigo-100 dark:border-gray-700">
@@ -285,12 +325,12 @@ export default function StudyNotesViewer({
         )}
       </div>
       {notes && (
-        <div className="mt-4">
+        <div className="mt-4 flex gap-2">
           <Button
             onClick={handleGenerateFlashcards}
             disabled={generatingFlashcards}
             variant="outline"
-            className="w-full"
+            className="flex-1"
           >
             {generatingFlashcards ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -299,8 +339,75 @@ export default function StudyNotesViewer({
             )}
             Generate Flashcards
           </Button>
+          <Button
+            onClick={handleGenerateQuiz}
+            disabled={generatingQuiz}
+            variant="outline"
+            className="flex-1"
+          >
+            {generatingQuiz ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Target className="h-4 w-4 mr-2" />
+            )}
+            Generate Quiz
+          </Button>
         </div>
       )}
+      <GenerateQuizDialogWrapper
+        isOpen={quizDialogOpen}
+        onClose={() => setQuizDialogOpen(false)}
+        onSuccess={handleQuizSuccess}
+        contentHash={contentHash}
+        materialName={materialName}
+        materialSubject={materialSubject}
+      />
     </div>
+  );
+}
+
+// Add GenerateQuizDialog component at the end
+function GenerateQuizDialogWrapper({
+  isOpen,
+  onClose,
+  onSuccess,
+  contentHash,
+  materialName,
+  materialSubject,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  contentHash: string;
+  materialName?: string;
+  materialSubject?: string;
+}) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+
+    if (isOpen) {
+      getUserId();
+    }
+  }, [isOpen]);
+
+  if (!userId) return null;
+
+  return (
+    <GenerateQuizDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      onSuccess={onSuccess}
+      userId={userId}
+      contentHash={contentHash}
+      materialTitle={materialName || "Study Material"}
+      materialSubject={materialSubject || "General"}
+    />
   );
 }

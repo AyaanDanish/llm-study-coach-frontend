@@ -17,11 +17,33 @@ type ProgressData = {
   topicsCompleted: number;
   quizScore?: number;
   targetReached: boolean;
+  quizAttempts?: number;
+};
+
+type WeeklyStats = {
+  totalStudyTime: number;
+  targetStudyTime: number;
+  totalFlashcards: number;
+  targetFlashcards: number;
+  averageQuizScore: number;
+  totalQuizAttempts: number;
+  studyDaysCompleted: number;
+  currentStreak: number;
 };
 
 export default function ProgressSection({ user }: ProgressSectionProps) {
   const { isDarkMode } = useTheme();
   const [progressData, setProgressData] = useState<ProgressData[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
+    totalStudyTime: 0,
+    targetStudyTime: 0,
+    totalFlashcards: 0,
+    targetFlashcards: 0,
+    averageQuizScore: 0,
+    totalQuizAttempts: 0,
+    studyDaysCompleted: 0,
+    currentStreak: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,16 +70,99 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
           return;
         }
 
-        const formattedData: ProgressData[] = records.map((record) => ({
-          date: record.date,
-          studyTime: record.study_time_minutes / 60, // Convert to hours
-          flashcardsReviewed: record.flashcards_completed || 0,
-          topicsCompleted: 1, // Could be calculated from study materials
-          quizScore: undefined, // Could be added later
-          targetReached: record.is_study_time_complete || false,
-        }));
+        // Get quiz data for the same period
+        const { data: quizData } = await supabase
+          .from("quiz_attempts")
+          .select("score, completed_at")
+          .eq("user_id", user.id)
+          .gte("completed_at", startDate.toISOString());
+
+        // Group quiz attempts by date
+        const quizByDate: {
+          [key: string]: { scores: number[]; count: number };
+        } = {};
+        quizData?.forEach((quiz) => {
+          const date = quiz.completed_at.split("T")[0];
+          if (!quizByDate[date]) {
+            quizByDate[date] = { scores: [], count: 0 };
+          }
+          quizByDate[date].scores.push(quiz.score);
+          quizByDate[date].count++;
+        });
+
+        const formattedData: ProgressData[] = records.map((record) => {
+          const dateQuizData = quizByDate[record.date];
+          const averageQuizScore =
+            dateQuizData?.scores.length > 0
+              ? dateQuizData.scores.reduce((sum, score) => sum + score, 0) /
+                dateQuizData.scores.length
+              : undefined;
+
+          return {
+            date: record.date,
+            studyTime: record.study_time_minutes || 0,
+            flashcardsReviewed: record.flashcards_completed || 0,
+            topicsCompleted: 1, // Could be calculated from study materials
+            quizScore: averageQuizScore,
+            quizAttempts: dateQuizData?.count || 0,
+            targetReached: record.is_study_time_complete || false,
+          };
+        });
 
         setProgressData(formattedData);
+
+        // Calculate weekly stats for current week
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(
+          now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+        );
+
+        const weeklyRecords = records.filter((record) => {
+          const recordDate = new Date(record.date);
+          return recordDate >= startOfWeek && recordDate <= now;
+        });
+
+        const totalStudyTime = weeklyRecords.reduce(
+          (sum, record) => sum + (record.study_time_minutes || 0),
+          0
+        );
+        const totalFlashcards = weeklyRecords.reduce(
+          (sum, record) => sum + (record.flashcards_completed || 0),
+          0
+        );
+        const studyDaysCompleted = weeklyRecords.filter(
+          (record) => record.is_day_complete
+        ).length;
+        const currentStreak =
+          weeklyRecords.length > 0
+            ? weeklyRecords[weeklyRecords.length - 1].current_streak || 0
+            : 0;
+
+        // Calculate quiz stats for the week
+        const weeklyQuizData =
+          quizData?.filter((quiz) => {
+            const quizDate = new Date(quiz.completed_at);
+            return quizDate >= startOfWeek && quizDate <= now;
+          }) || [];
+
+        const averageQuizScore =
+          weeklyQuizData.length > 0
+            ? weeklyQuizData.reduce((sum, quiz) => sum + quiz.score, 0) /
+              weeklyQuizData.length
+            : 0;
+
+        setWeeklyStats({
+          totalStudyTime,
+          targetStudyTime: user.studyminutes * 7, // Daily target * 7 days
+          totalFlashcards,
+          targetFlashcards: user.flashcardtarget * 7, // Daily target * 7 days
+          averageQuizScore,
+          totalQuizAttempts: weeklyQuizData.length,
+          studyDaysCompleted,
+          currentStreak,
+        });
       } catch (error) {
         console.error("Error loading progress data:", error);
         setProgressData([]);
@@ -67,7 +172,7 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
     };
 
     loadProgressData();
-  }, [user.id]);
+  }, [user.id, user.studyminutes, user.flashcardtarget]);
 
   const handlePrevious = () => {
     const newDate = new Date(currentDate);
@@ -123,38 +228,50 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
 
   // Calculate summary statistics
   const calculateSummary = () => {
-    const totalStudyTime = progressData.reduce(
-      (sum, day) => sum + day.studyTime,
-      0
-    );
-    const totalFlashcards = progressData.reduce(
-      (sum, day) => sum + day.flashcardsReviewed,
-      0
-    );
-    const totalTopics = progressData.reduce(
-      (sum, day) => sum + day.topicsCompleted,
-      0
-    );
+    if (timeRange === "week") {
+      return {
+        totalStudyTime: Math.round((weeklyStats.totalStudyTime / 60) * 10) / 10, // Convert to hours, round to 1 decimal
+        totalFlashcards: weeklyStats.totalFlashcards,
+        totalTopics: weeklyStats.studyDaysCompleted, // Use study days as topics
+        averageQuizScore: Math.round(weeklyStats.averageQuizScore),
+        daysStudied: weeklyStats.studyDaysCompleted,
+        studyStreak: weeklyStats.currentStreak,
+      };
+    } else {
+      // For day and month views, use the progressData calculation
+      const totalStudyTime = progressData.reduce(
+        (sum, day) => sum + day.studyTime,
+        0
+      );
+      const totalFlashcards = progressData.reduce(
+        (sum, day) => sum + day.flashcardsReviewed,
+        0
+      );
+      const totalTopics = progressData.reduce(
+        (sum, day) => sum + day.topicsCompleted,
+        0
+      );
 
-    const quizScores = progressData
-      .filter((day) => day.quizScore !== undefined)
-      .map((day) => day.quizScore as number);
-    const averageQuizScore =
-      quizScores.length > 0
-        ? Math.round(
-            quizScores.reduce((sum, score) => sum + score, 0) /
-              quizScores.length
-          )
-        : 0;
+      const quizScores = progressData
+        .filter((day) => day.quizScore !== undefined)
+        .map((day) => day.quizScore as number);
+      const averageQuizScore =
+        quizScores.length > 0
+          ? Math.round(
+              quizScores.reduce((sum, score) => sum + score, 0) /
+                quizScores.length
+            )
+          : 0;
 
-    return {
-      totalStudyTime,
-      totalFlashcards,
-      totalTopics,
-      averageQuizScore,
-      daysStudied: progressData.length,
-      studyStreak: 5, // Mock value
-    };
+      return {
+        totalStudyTime: Math.round((totalStudyTime / 60) * 10) / 10, // Convert to hours
+        totalFlashcards,
+        totalTopics,
+        averageQuizScore,
+        daysStudied: progressData.filter((day) => day.studyTime > 0).length,
+        studyStreak: weeklyStats.currentStreak,
+      };
+    }
   };
 
   const summary = calculateSummary();
@@ -258,6 +375,104 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
         </div>
       </div>
 
+      {timeRange === "week" && (
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
+          <h2 className="text-lg font-medium text-indigo-800 dark:text-indigo-300 mb-6">
+            Weekly Targets
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                  Study Time
+                </span>
+                <span className="text-xs text-blue-600 dark:text-blue-400">
+                  {Math.round(
+                    (weeklyStats.totalStudyTime / weeklyStats.targetStudyTime) *
+                      100
+                  )}
+                  %
+                </span>
+              </div>
+              <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 mb-2">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      (weeklyStats.totalStudyTime /
+                        weeklyStats.targetStudyTime) *
+                        100
+                    )}%`,
+                  }}
+                />
+              </div>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {Math.round((weeklyStats.totalStudyTime / 60) * 10) / 10}h /{" "}
+                {Math.round((weeklyStats.targetStudyTime / 60) * 10) / 10}h
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-green-100 dark:border-green-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                  Flashcards
+                </span>
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  {Math.round(
+                    (weeklyStats.totalFlashcards /
+                      weeklyStats.targetFlashcards) *
+                      100
+                  )}
+                  %
+                </span>
+              </div>
+              <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-2 mb-2">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      (weeklyStats.totalFlashcards /
+                        weeklyStats.targetFlashcards) *
+                        100
+                    )}%`,
+                  }}
+                />
+              </div>
+              <p className="text-sm text-green-700 dark:text-green-400">
+                {weeklyStats.totalFlashcards} / {weeklyStats.targetFlashcards}{" "}
+                cards
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                  Quiz Performance
+                </span>
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  {Math.round(weeklyStats.averageQuizScore)}%
+                </span>
+              </div>
+              <div className="w-full bg-amber-200 dark:bg-amber-800 rounded-full h-2 mb-2">
+                <div
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(100, weeklyStats.averageQuizScore)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {weeklyStats.totalQuizAttempts} quiz
+                {weeklyStats.totalQuizAttempts !== 1 ? "es" : ""} completed
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-indigo-800 dark:text-indigo-300">
@@ -343,13 +558,18 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
                           style={{
-                            width: `${
+                            width: `${Math.min(
+                              100,
                               (day.studyTime / user.studyminutes) * 100
-                            }%`,
+                            )}%`,
                           }}
                         ></div>
                       </div>
-                      {day.studyTime} hrs
+                      {day.studyTime > 0
+                        ? day.studyTime >= 60
+                          ? `${Math.round((day.studyTime / 60) * 10) / 10}h`
+                          : `${day.studyTime}m`
+                        : "-"}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
@@ -358,10 +578,11 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                         <div
                           className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
                           style={{
-                            width: `${
+                            width: `${Math.min(
+                              100,
                               (day.flashcardsReviewed / user.flashcardtarget) *
-                              100
-                            }%`,
+                                100
+                            )}%`,
                           }}
                         ></div>
                       </div>
@@ -373,9 +594,17 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {day.quizScore ? (
-                      <span className="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 text-amber-800 dark:text-amber-400 rounded-full">
-                        {day.quizScore}%
-                      </span>
+                      <div className="flex items-center">
+                        <span className="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 text-amber-800 dark:text-amber-400 rounded-full text-xs">
+                          {Math.round(day.quizScore)}%
+                        </span>
+                        {day.quizAttempts && day.quizAttempts > 1 && (
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                            ({day.quizAttempts} quiz
+                            {day.quizAttempts !== 1 ? "es" : ""})
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       "-"
                     )}

@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Moon,
   Sun,
+  Brain,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,6 +40,7 @@ import {
 import FlashcardSection from "@/components/flashcard-section";
 import StudyMaterialsSection from "@/components/study-materials-section";
 import ProgressSection from "@/components/progress-section";
+import QuizSection from "@/components/quiz-section";
 import { supabase } from "@/lib/supabaseClient";
 import { StudyTimer } from "@/components/study-timer";
 import { useTimer } from "@/contexts/TimerContext";
@@ -52,6 +54,7 @@ type DashboardProps = {
 type DashboardView =
   | "overview"
   | "flashcards"
+  | "quizzes"
   | "materials"
   | "progress"
   | "settings";
@@ -96,6 +99,8 @@ export default function Dashboard({ user }: DashboardProps) {
         );
       case "flashcards":
         return <FlashcardSection />;
+      case "quizzes":
+        return <QuizSection userId={user.id} />;
       case "materials":
         return (
           <StudyMaterialsSection
@@ -161,6 +166,16 @@ export default function Dashboard({ user }: DashboardProps) {
                     >
                       <BookOpenCheck size={20} />
                       <span>Flashcards</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => setCurrentView("quizzes")}
+                      isActive={currentView === "quizzes"}
+                    >
+                      <Brain size={20} />
+                      <span>Quizzes</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
@@ -254,6 +269,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
                   {currentView === "overview" && "Dashboard"}
                   {currentView === "flashcards" && "Flashcards"}
+                  {currentView === "quizzes" && "Quizzes"}
                   {currentView === "materials" && "Study Materials"}
                   {currentView === "progress" && "Progress Tracking"}
                   {currentView === "settings" && "Account Settings"}
@@ -325,6 +341,13 @@ function OverviewContent({
   const [flashcardsCompleted, setFlashcardsCompleted] = useState(0);
   const [isFlashcardsComplete, setIsFlashcardsComplete] = useState(false);
 
+  // Weekly progress state
+  const [weeklyProgress, setWeeklyProgress] = useState({
+    studyTime: { current: 0, target: 0, percentage: 0 },
+    flashcards: { current: 0, target: 0, percentage: 0 },
+    quizPerformance: { average: 0, percentage: 0 },
+  });
+
   useEffect(() => {
     const loadStudyProgress = async () => {
       try {
@@ -354,6 +377,95 @@ function OverviewContent({
     const interval = setInterval(loadStudyProgress, 30000);
     return () => clearInterval(interval);
   }, [user.id]);
+
+  useEffect(() => {
+    const loadWeeklyProgress = async () => {
+      try {
+        // Get start and end of current week (Monday to Sunday)
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday, etc.
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(
+          now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+        );
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        // Get daily study records for the week
+        const { data: weeklyRecords } = await supabase
+          .from("daily_study_records")
+          .select("study_time_minutes, flashcards_completed")
+          .eq("user_id", user.id)
+          .gte("date", startOfWeek.toISOString().split("T")[0])
+          .lte("date", endOfWeek.toISOString().split("T")[0]);
+
+        // Calculate weekly study time
+        const totalStudyMinutes =
+          weeklyRecords?.reduce(
+            (sum, record) => sum + (record.study_time_minutes || 0),
+            0
+          ) || 0;
+        const weeklyStudyTarget = user.studyminutes * 7; // Daily target * 7 days
+        const studyTimePercentage = Math.min(
+          100,
+          (totalStudyMinutes / weeklyStudyTarget) * 100
+        );
+
+        // Calculate weekly flashcards
+        const totalFlashcards =
+          weeklyRecords?.reduce(
+            (sum, record) => sum + (record.flashcards_completed || 0),
+            0
+          ) || 0;
+        const weeklyFlashcardTarget = user.flashcardtarget * 7; // Daily target * 7 days
+        const flashcardsPercentage = Math.min(
+          100,
+          (totalFlashcards / weeklyFlashcardTarget) * 100
+        );
+
+        // Get quiz performance for the week
+        const { data: quizAttempts } = await supabase
+          .from("quiz_attempts")
+          .select("score")
+          .eq("user_id", user.id)
+          .gte("completed_at", startOfWeek.toISOString())
+          .lte("completed_at", endOfWeek.toISOString());
+
+        const averageQuizScore =
+          quizAttempts && quizAttempts.length > 0
+            ? quizAttempts.reduce((sum, attempt) => sum + attempt.score, 0) /
+              quizAttempts.length
+            : 0;
+
+        setWeeklyProgress({
+          studyTime: {
+            current: totalStudyMinutes,
+            target: weeklyStudyTarget,
+            percentage: studyTimePercentage,
+          },
+          flashcards: {
+            current: totalFlashcards,
+            target: weeklyFlashcardTarget,
+            percentage: flashcardsPercentage,
+          },
+          quizPerformance: {
+            average: averageQuizScore,
+            percentage: averageQuizScore,
+          },
+        });
+      } catch (error) {
+        console.error("Error loading weekly progress:", error);
+      }
+    };
+
+    loadWeeklyProgress();
+    // Update every 5 minutes to keep weekly progress relatively fresh
+    const interval = setInterval(loadWeeklyProgress, 300000);
+    return () => clearInterval(interval);
+  }, [user.id, user.studyminutes, user.flashcardtarget]);
 
   const formatStudyTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -539,14 +651,14 @@ function OverviewContent({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex flex-col items-center space-y-3">
                 <CircularProgress
-                  percentage={57}
+                  percentage={weeklyProgress.studyTime.percentage}
                   color="#3B82F6"
                   size={100}
                   strokeWidth={8}
                 >
                   <div className="text-center">
                     <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                      57%
+                      {Math.round(weeklyProgress.studyTime.percentage)}%
                     </div>
                   </div>
                 </CircularProgress>
@@ -555,21 +667,24 @@ function OverviewContent({
                     Study Time
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    8/14 hours
+                    {Math.round(weeklyProgress.studyTime.current / 60)}h{" "}
+                    {weeklyProgress.studyTime.current % 60}m /{" "}
+                    {Math.round(weeklyProgress.studyTime.target / 60)}h{" "}
+                    {weeklyProgress.studyTime.target % 60}m
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col items-center space-y-3">
                 <CircularProgress
-                  percentage={61}
+                  percentage={weeklyProgress.flashcards.percentage}
                   color="#10B981"
                   size={100}
                   strokeWidth={8}
                 >
                   <div className="text-center">
                     <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                      61%
+                      {Math.round(weeklyProgress.flashcards.percentage)}%
                     </div>
                   </div>
                 </CircularProgress>
@@ -578,21 +693,22 @@ function OverviewContent({
                     Flashcards
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    85/140 cards
+                    {weeklyProgress.flashcards.current}/
+                    {weeklyProgress.flashcards.target} cards
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col items-center space-y-3">
                 <CircularProgress
-                  percentage={85}
+                  percentage={weeklyProgress.quizPerformance.percentage}
                   color="#F59E0B"
                   size={100}
                   strokeWidth={8}
                 >
                   <div className="text-center">
                     <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                      85%
+                      {Math.round(weeklyProgress.quizPerformance.percentage)}%
                     </div>
                   </div>
                 </CircularProgress>
@@ -601,7 +717,8 @@ function OverviewContent({
                     Quiz Performance
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    85% average
+                    {Math.round(weeklyProgress.quizPerformance.average)}%
+                    average
                   </div>
                 </div>
               </div>

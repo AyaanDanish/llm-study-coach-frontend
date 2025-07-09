@@ -678,6 +678,8 @@ export default function StudyMaterialsSection({
               )}
               onGenerateNotes={() => generateNotes(selectedMaterial)}
               isGenerating={isGeneratingNotes}
+              materialName={selectedMaterial.name}
+              materialSubject={selectedMaterial.subject}
             />
           ) : (
             <div className="text-center py-8">
