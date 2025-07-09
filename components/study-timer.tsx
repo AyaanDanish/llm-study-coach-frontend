@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useTimer } from "@/contexts/TimerContext";
 
 interface DailyStudyRecord {
   id: string;
@@ -17,16 +18,31 @@ interface DailyStudyRecord {
 }
 
 export function StudyTimer() {
-  const [time, setTime] = useState(0); // time in seconds
-  const [isRunning, setIsRunning] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [dailyTarget, setDailyTarget] = useState<number>(30); // default 30 minutes
-  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
-  const [targetReachedNotified, setTargetReachedNotified] = useState(false);
+  const {
+    time,
+    isRunning,
+    dailyTarget,
+    progress,
+    isTargetReached,
+    minutesToTarget,
+    userId,
+    isInitialized,
+    sessionStartTime,
+    targetReachedNotified,
+    setTime,
+    setIsRunning,
+    setDailyTarget,
+    setUserId,
+    setIsInitialized,
+    setSessionStartTime,
+    setTargetReachedNotified,
+    formatTime,
+  } = useTimer();
 
   // Get user session and load today's study data
   useEffect(() => {
+    if (isInitialized) return; // Prevent re-initialization
+
     const initializeTimer = async () => {
       try {
         // Get current user
@@ -174,59 +190,7 @@ export function StudyTimer() {
     };
 
     initializeTimer();
-  }, []); // Update database whenever time changes
-  useEffect(() => {
-    if (!isInitialized || !userId) return;
-
-    const updateDatabase = async () => {
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        const studyTimeMinutes = Math.floor(time / 60);
-        const targetMinutes = dailyTarget;
-        const isStudyTimeComplete = studyTimeMinutes >= targetMinutes;
-
-        const updateData = {
-          study_time_minutes: studyTimeMinutes,
-          is_study_time_complete: isStudyTimeComplete,
-          is_day_complete: isStudyTimeComplete,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await supabase
-          .from("daily_study_records")
-          .update(updateData)
-          .eq("user_id", userId)
-          .eq("date", today);
-
-        if (error) {
-          console.error("Error updating study time:", error);
-        }
-      } catch (error) {
-        console.error("Error updating study time:", error);
-      }
-    };
-
-    // Update database more frequently:
-    // - Every 5 seconds when running
-    // - Immediately when timer stops
-    // - On time milestones (every minute)
-    const shouldUpdate =
-      (!isRunning && time > 0) || // Timer just stopped
-      (isRunning && time > 0 && time % 5 === 0) || // Every 5 seconds while running
-      (time > 0 && time % 60 === 0); // Every minute
-
-    if (shouldUpdate) {
-      updateDatabase();
-    }
-  }, [time, isInitialized, userId, dailyTarget, isRunning]);
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  }, [isInitialized]); // Only depend on isInitialized
   const toggleTimer = useCallback(async () => {
     if (!userId) return;
 
@@ -268,7 +232,7 @@ export function StudyTimer() {
     } catch (error) {
       console.error("Error toggling timer:", error);
     }
-  }, [isRunning, userId, time]);
+  }, [isRunning, userId, time, setIsRunning, setSessionStartTime]);
   const resetTimer = useCallback(async () => {
     if (!userId) return;
 
@@ -298,133 +262,23 @@ export function StudyTimer() {
     } catch (error) {
       console.error("Error resetting timer:", error);
     }
-  }, [userId]);
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    if (isRunning) {
-      intervalId = setInterval(() => {
-        setTime((prevTime) => prevTime + 1);
-      }, 1000);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isRunning]); // Handle page visibility changes (optional - could save state to DB)
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible" && isRunning && userId) {
-        // Optionally sync with database when page becomes visible
-        console.log("Page became visible, syncing with database");
-        try {
-          const today = new Date().toISOString().split("T")[0];
-          const studyTimeMinutes = Math.floor(time / 60);
-
-          await supabase
-            .from("daily_study_records")
-            .update({
-              study_time_minutes: studyTimeMinutes,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId)
-            .eq("date", today);
-        } catch (error) {
-          console.error("Error syncing with database:", error);
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [time, isRunning, userId]); // Listen for auth state changes to handle logout/login
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") {
-        console.log("User signed out, resetting timer state"); // Reset timer state
-        setTime(0);
-        setIsRunning(false);
-        setUserId(null);
-        setSessionStartTime(null);
-        setTargetReachedNotified(false);
-        setIsInitialized(false);
-      } else if (event === "SIGNED_IN" && session?.user) {
-        // User signed in, reinitialize timer
-        console.log("User signed in, reinitializing timer");
-        setIsInitialized(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []); // Calculate progress
-  const targetSeconds = dailyTarget * 60;
-  const progress = Math.min((time / targetSeconds) * 100, 100);
-  const isTargetReached = time >= targetSeconds;
-  const minutesToTarget = Math.max(0, Math.ceil((targetSeconds - time) / 60));
-
-  // Handle target completion detection
-  useEffect(() => {
-    if (!isInitialized || !userId) return;
-
-    const targetSeconds = dailyTarget * 60;
-    const isTargetJustReached = time >= targetSeconds && !targetReachedNotified;
-
-    if (isTargetJustReached) {
-      setTargetReachedNotified(true);
-
-      // Immediately update database when target is reached
-      const updateTargetCompletion = async () => {
-        try {
-          const today = new Date().toISOString().split("T")[0];
-          const studyTimeMinutes = Math.floor(time / 60);
-
-          console.log("🎉 Study target reached! Updating database...");
-
-          const { error } = await supabase
-            .from("daily_study_records")
-            .update({
-              study_time_minutes: studyTimeMinutes,
-              is_study_time_complete: true,
-              is_day_complete: true, // Mark day as complete when study target is reached
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId)
-            .eq("date", today);
-
-          if (error) {
-            console.error("Error updating target completion:", error);
-          } else {
-            console.log("✅ Target completion recorded in database");
-          }
-        } catch (error) {
-          console.error("Error updating target completion:", error);
-        }
-      };
-
-      updateTargetCompletion();
-    }
-
-    // Reset notification flag if time goes below target (e.g., after reset)
-    if (time < targetSeconds && targetReachedNotified) {
-      setTargetReachedNotified(false);
-    }
-  }, [time, dailyTarget, isInitialized, userId, targetReachedNotified]);
+  }, [
+    userId,
+    setTime,
+    setIsRunning,
+    setSessionStartTime,
+    setTargetReachedNotified,
+  ]);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-4">
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 p-4 transform transition-transform hover:scale-105">
       <div className="flex flex-col items-center space-y-3">
         <div className="text-3xl font-mono font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
           {formatTime(time)}
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -434,11 +288,11 @@ export function StudyTimer() {
         {/* Target status */}
         <div className="text-sm text-center">
           {isTargetReached ? (
-            <span className="text-green-600 font-medium">
+            <span className="text-green-600 dark:text-green-400 font-medium">
               🎉 Daily target reached!
             </span>
           ) : (
-            <span className="text-gray-600">
+            <span className="text-gray-600 dark:text-gray-400">
               {minutesToTarget} minutes to target
             </span>
           )}
@@ -463,9 +317,9 @@ export function StudyTimer() {
             size="icon"
             onClick={resetTimer}
             disabled={!userId}
-            className="h-8 w-8 border-indigo-200 hover:bg-indigo-50"
+            className="h-8 w-8 border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
           >
-            <RotateCcw className="h-3 w-3 text-indigo-600" />
+            <RotateCcw className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
           </Button>{" "}
         </div>
       </div>

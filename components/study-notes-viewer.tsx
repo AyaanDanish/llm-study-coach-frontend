@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, Brain, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface StudyNotesViewerProps {
   materialId: string;
@@ -23,6 +24,7 @@ export default function StudyNotesViewer({
   onGenerateNotes,
   isGenerating,
 }: StudyNotesViewerProps) {
+  const { isDarkMode } = useTheme();
   const [notes, setNotes] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,8 +120,8 @@ export default function StudyNotesViewer({
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">
             {isGenerating
               ? "Generating study notes..."
               : "Loading study notes..."}
@@ -135,8 +137,8 @@ export default function StudyNotesViewer({
     }
 
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <p className="text-red-600 mb-4">{error}</p>
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
         <Button onClick={fetchNotes} variant="outline">
           Try Again
         </Button>
@@ -149,9 +151,11 @@ export default function StudyNotesViewer({
       {" "}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-indigo-800">Study Notes</h3>
+          <h3 className="text-lg font-medium text-indigo-800 dark:text-indigo-300">
+            Study Notes
+          </h3>
           {generatedAt && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Generated on {new Date(generatedAt).toLocaleString()}
             </p>
           )}
@@ -163,7 +167,7 @@ export default function StudyNotesViewer({
             disabled={generatingFlashcards}
             variant="outline"
             size="sm"
-            className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 text-purple-700 hover:from-purple-100 hover:to-indigo-100"
+            className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30"
           >
             {generatingFlashcards ? (
               <>
@@ -179,27 +183,29 @@ export default function StudyNotesViewer({
           </Button>
         )}
       </div>{" "}
-      <div className="prose prose-indigo prose-lg max-w-none bg-white p-6 rounded-xl border border-indigo-100">
+      <div className="prose prose-indigo prose-lg max-w-none bg-white dark:bg-gray-800 p-6 rounded-xl border border-indigo-100 dark:border-gray-700">
         {notes ? (
           <ReactMarkdown
             components={{
               h1: ({ children }) => (
-                <h1 className="text-2xl font-bold text-indigo-800 mb-4">
+                <h1 className="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
                   {children}
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 className="text-xl font-semibold text-indigo-700 mb-3 mt-6">
+                <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400 mb-3 mt-6">
                   {children}
                 </h2>
               ),
               h3: ({ children }) => (
-                <h3 className="text-lg font-medium text-indigo-600 mb-2 mt-4">
+                <h3 className="text-lg font-medium text-indigo-600 dark:text-indigo-400 mb-2 mt-4">
                   {children}
                 </h3>
               ),
               p: ({ children }) => (
-                <p className="mb-3 text-gray-700 leading-relaxed">{children}</p>
+                <p className="mb-3 text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {children}
+                </p>
               ),
               ul: ({ children }) => (
                 <ul className="list-disc list-inside mb-3 space-y-1">
@@ -212,31 +218,39 @@ export default function StudyNotesViewer({
                 </ol>
               ),
               li: ({ children }) => (
-                <li className="text-gray-700 ml-2">{children}</li>
+                <li className="text-gray-700 dark:text-gray-300 ml-2">
+                  {children}
+                </li>
               ),
               strong: ({ children }) => (
-                <strong className="font-semibold text-indigo-800">
+                <strong className="font-semibold text-indigo-800 dark:text-indigo-300">
                   {children}
                 </strong>
               ),
               em: ({ children }) => (
-                <em className="italic text-gray-600">{children}</em>
+                <em className="italic text-gray-600 dark:text-gray-400">
+                  {children}
+                </em>
               ),
-              hr: () => <hr className="my-6 border-indigo-200" />,
+              hr: () => (
+                <hr className="my-6 border-indigo-200 dark:border-gray-600" />
+              ),
               blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-indigo-300 pl-4 my-4 italic text-gray-600">
+                <blockquote className="border-l-4 border-indigo-300 dark:border-indigo-600 pl-4 my-4 italic text-gray-600 dark:text-gray-400">
                   {children}
                 </blockquote>
               ),
               code: ({ children, ...props }) => {
                 const isInline = !props.className?.includes("language-");
                 return isInline ? (
-                  <code className="bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded text-sm">
+                  <code className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded text-sm">
                     {children}
                   </code>
                 ) : (
-                  <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                    <code className="text-sm">{children}</code>
+                  <pre className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto">
+                    <code className="text-sm text-gray-900 dark:text-gray-100">
+                      {children}
+                    </code>
                   </pre>
                 );
               },
@@ -246,14 +260,14 @@ export default function StudyNotesViewer({
           </ReactMarkdown>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               No notes available. Click "Generate Notes" to create study notes
               for this material.
             </p>
             <Button
               onClick={handleGenerateNotes}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600"
             >
               {isGenerating ? (
                 <>

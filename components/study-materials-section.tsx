@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import StudyNotesViewer from "./study-notes-viewer";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface StudyMaterialsSectionProps {
   userId: string;
@@ -44,6 +45,7 @@ export default function StudyMaterialsSection({
   selectedMaterialId,
   onClearSelection,
 }: StudyMaterialsSectionProps) {
+  const { isDarkMode } = useTheme();
   const [currentView, setCurrentView] = useState<"files" | "content">("files");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<string[]>([]);
@@ -330,8 +332,10 @@ export default function StudyMaterialsSection({
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading study materials...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Loading study materials...
+            </p>
           </div>
         </div>
       );
@@ -339,8 +343,8 @@ export default function StudyMaterialsSection({
 
     if (error) {
       return (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <Button onClick={fetchMaterials} variant="outline">
             Try Again
           </Button>
@@ -351,13 +355,13 @@ export default function StudyMaterialsSection({
     if (Object.keys(filteredMaterials).length === 0) {
       return (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mb-6">
-            <FileText className="h-12 w-12 text-indigo-600" />
+          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mb-6">
+            <FileText className="h-12 w-12 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             No study materials yet
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             {searchQuery
               ? "No materials match your search."
               : "Upload your first PDF to get started."}
@@ -365,7 +369,7 @@ export default function StudyMaterialsSection({
           {!searchQuery && (
             <Button
               onClick={() => setUploadDialogOpen(true)}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600"
             >
               <Upload className="h-4 w-4 mr-2" />
               Upload Material
@@ -380,21 +384,24 @@ export default function StudyMaterialsSection({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="text-indigo-400" size={18} />
+              <Search
+                className="text-indigo-400 dark:text-indigo-300"
+                size={18}
+              />
             </div>
             <input
               type="text"
               placeholder="Search materials..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-indigo-200 rounded-xl w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80"
+              className="pl-10 pr-4 py-2 border border-indigo-200 dark:border-gray-600 rounded-xl w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100"
             />
           </div>
 
           <div className="flex items-center space-x-2">
             <Button
               onClick={() => setUploadDialogOpen(true)}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 shadow-md hover:shadow-lg"
             >
               <Upload size={18} className="mr-2" />
               Upload
@@ -404,7 +411,7 @@ export default function StudyMaterialsSection({
               onClick={fetchMaterials}
               variant="outline"
               size="sm"
-              className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+              className="border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400"
               title="Refresh materials"
             >
               <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -412,7 +419,7 @@ export default function StudyMaterialsSection({
           </div>
         </div>
 
-        <div className="border border-indigo-100 rounded-xl divide-y divide-indigo-100 bg-white/80 backdrop-blur-sm shadow-sm">
+        <div className="border border-indigo-100 dark:border-gray-700 rounded-xl divide-y divide-indigo-100 dark:divide-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm">
           {Object.entries(filteredMaterials).map(([subject, files]) => {
             const isExpanded = expandedFolders.includes(subject);
 
@@ -420,43 +427,55 @@ export default function StudyMaterialsSection({
               <div key={subject}>
                 {/* Subject Folder */}
                 <div
-                  className="flex items-center p-4 hover:bg-indigo-50 cursor-pointer transition border-b border-indigo-100"
+                  className="flex items-center p-4 hover:bg-indigo-50 dark:hover:bg-gray-700 cursor-pointer transition border-b border-indigo-100 dark:border-gray-700"
                   onClick={() => toggleFolder(subject)}
                 >
-                  <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2 rounded-lg mr-3">
-                    <Folder className="text-blue-500" size={20} />
+                  <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 p-2 rounded-lg mr-3">
+                    <Folder
+                      className="text-blue-500 dark:text-blue-400"
+                      size={20}
+                    />
                   </div>
-                  <span className="flex-1 font-medium text-gray-900">
+                  <span className="flex-1 font-medium text-gray-900 dark:text-gray-100">
                     {subject}
                   </span>
-                  <span className="text-sm text-gray-500 mr-3">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 mr-3">
                     {files.length} files
                   </span>
                   {isExpanded ? (
-                    <ChevronDown size={18} className="text-indigo-400" />
+                    <ChevronDown
+                      size={18}
+                      className="text-indigo-400 dark:text-indigo-300"
+                    />
                   ) : (
-                    <ChevronRight size={18} className="text-indigo-400" />
+                    <ChevronRight
+                      size={18}
+                      className="text-indigo-400 dark:text-indigo-300"
+                    />
                   )}
                 </div>
 
                 {/* Files in Subject */}
                 {isExpanded && (
-                  <div className="bg-gray-50/50">
+                  <div className="bg-gray-50/50 dark:bg-gray-700/20">
                     {files.map((material) => (
                       <div
                         key={material.id}
                         onClick={() => openFile(material)}
-                        className="flex items-center p-4 pl-12 hover:bg-indigo-50 transition border-b border-indigo-50 last:border-b-0 cursor-pointer group"
+                        className="flex items-center p-4 pl-12 hover:bg-indigo-50 dark:hover:bg-gray-700 transition border-b border-indigo-50 dark:border-gray-700 last:border-b-0 cursor-pointer group"
                       >
-                        <div className="bg-gradient-to-br from-red-100 to-rose-100 p-2 rounded-lg mr-3">
-                          <FileText className="text-red-500" size={18} />
+                        <div className="bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-900/20 dark:to-rose-900/20 p-2 rounded-lg mr-3">
+                          <FileText
+                            className="text-red-500 dark:text-red-400"
+                            size={18}
+                          />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate group-hover:text-indigo-600">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                             {material.name}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {formatFileSize(material.file_size)} •{" "}
                             {formatDate(material.uploaded_at)}
                           </p>
@@ -468,7 +487,7 @@ export default function StudyMaterialsSection({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 onClick={(e) => e.stopPropagation()} // Prevent row click when clicking dropdown
                               >
                                 <MoreHorizontal size={16} />
@@ -489,7 +508,7 @@ export default function StudyMaterialsSection({
                                   e.stopPropagation(); // Prevent row click when clicking menu items
                                   deleteFile(material);
                                 }}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -522,7 +541,7 @@ export default function StudyMaterialsSection({
               setSelectedMaterial(null);
             }}
             variant="outline"
-            className="border-gray-200 hover:bg-gray-50 flex items-center"
+            className="border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center"
           >
             <ChevronLeft className="h-4 w-4" />
             Back to Files
@@ -531,20 +550,20 @@ export default function StudyMaterialsSection({
           <Button
             onClick={() => downloadFile(selectedMaterial)}
             variant="outline"
-            className="border-indigo-200 hover:bg-indigo-50 text-indigo-600"
+            className="border-indigo-200 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400"
           >
             <Download size={16} className="mr-2" />
             Download
           </Button>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-indigo-100 dark:border-gray-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
                 {selectedMaterial.name.replace(/\.[^/.]+$/, "")}
               </h2>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                <span className="bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full">
                   {selectedMaterial.subject}
                 </span>
                 <span>{formatFileSize(selectedMaterial.file_size)}</span>
@@ -554,57 +573,74 @@ export default function StudyMaterialsSection({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl shadow-sm border border-blue-100">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl shadow-sm border border-blue-100 dark:border-blue-800">
               <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 p-2 rounded-full">
-                  <Clock className="text-blue-600" size={20} />
+                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-800 dark:to-indigo-800 p-2 rounded-full">
+                  <Clock
+                    className="text-blue-600 dark:text-blue-400"
+                    size={20}
+                  />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Uploaded</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Uploaded
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
                     {formatDate(selectedMaterial.uploaded_at)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl shadow-sm border border-green-100">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl shadow-sm border border-green-100 dark:border-green-800">
               <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-green-100 to-emerald-100 p-2 rounded-full">
-                  <FileText className="text-green-600" size={20} />
+                <div className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-800 dark:to-emerald-800 p-2 rounded-full">
+                  <FileText
+                    className="text-green-600 dark:text-green-400"
+                    size={20}
+                  />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">File Size</p>
-                  <p className="font-medium">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    File Size
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
                     {formatFileSize(selectedMaterial.file_size)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 p-4 rounded-xl shadow-sm border border-purple-100">
+            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 p-4 rounded-xl shadow-sm border border-purple-100 dark:border-purple-800">
               <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-purple-100 to-fuchsia-100 p-2 rounded-full">
-                  <Brain className="text-purple-600" size={20} />
+                <div className="bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-800 dark:to-fuchsia-800 p-2 rounded-full">
+                  <Brain
+                    className="text-purple-600 dark:text-purple-400"
+                    size={20}
+                  />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Subject</p>
-                  <p className="font-medium">{selectedMaterial.subject}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Subject
+                  </p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {selectedMaterial.subject}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>{" "}
         {/* Notes Section */}
-        <div className="bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-xl p-6 shadow-sm">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-indigo-100 dark:border-gray-700 rounded-xl p-6 shadow-sm">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
               <Button
                 onClick={() => setError("")}
                 variant="ghost"
                 size="sm"
-                className="mt-2 text-red-600 hover:text-red-700 hover:bg-red-100"
+                className="mt-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20"
               >
                 Dismiss
               </Button>
@@ -614,8 +650,10 @@ export default function StudyMaterialsSection({
           {isGeneratingNotes ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto mb-4" />
-                <p className="text-gray-600">Generating study notes...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Generating study notes...
+                </p>
               </div>
             </div>
           ) : selectedMaterial.content_hash ? (
@@ -625,13 +663,13 @@ export default function StudyMaterialsSection({
               onClose={() => {}}
               onNotesNotFound={() => (
                 <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
                     This material hasn't been processed for notes yet.
                   </p>
                   <Button
                     onClick={() => generateNotes(selectedMaterial)}
                     disabled={isGeneratingNotes}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Brain size={16} className="mr-2" />
                     {isGeneratingNotes ? "Generating..." : "Generate Notes"}
@@ -643,13 +681,13 @@ export default function StudyMaterialsSection({
             />
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 This material hasn't been processed for notes yet.
               </p>
               <Button
                 onClick={() => generateNotes(selectedMaterial)}
                 disabled={isGeneratingNotes}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Brain size={16} className="mr-2" />
                 {isGeneratingNotes ? "Generating..." : "Generate Notes"}
@@ -662,7 +700,7 @@ export default function StudyMaterialsSection({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100">
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
       {currentView === "files" && renderFilesView()}
       {currentView === "content" && renderContentView()}
 
