@@ -13,8 +13,7 @@ The **Study Coach App** is a web application designed to help users track their 
 
 ---
 ## Deployment:
-The app has been deployed via Vercel and is available at the following URL:
-llm-study-coach.vercel.app
+The app has been deployed via Vercel and is available [here](llm-study-coach.vercel.app).
 ---
 
 
