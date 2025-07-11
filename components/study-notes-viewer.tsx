@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/contexts/ThemeContext";
 import GenerateQuizDialog from "./generate-quiz-dialog";
+import QASection from "./qa-section";
 
 interface StudyNotesViewerProps {
   materialId: string;
@@ -225,79 +226,82 @@ export default function StudyNotesViewer({
       </div>{" "}
       <div className="prose prose-indigo prose-lg max-w-none bg-white dark:bg-gray-800 p-6 rounded-xl border border-indigo-100 dark:border-gray-700">
         {notes ? (
-          <ReactMarkdown
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400 mb-3 mt-6">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-lg font-medium text-indigo-600 dark:text-indigo-400 mb-2 mt-4">
-                  {children}
-                </h3>
-              ),
-              p: ({ children }) => (
-                <p className="mb-3 text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {children}
-                </p>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside mb-3 space-y-1">
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside mb-3 space-y-1">
-                  {children}
-                </ol>
-              ),
-              li: ({ children }) => (
-                <li className="text-gray-700 dark:text-gray-300 ml-2">
-                  {children}
-                </li>
-              ),
-              strong: ({ children }) => (
-                <strong className="font-semibold text-indigo-800 dark:text-indigo-300">
-                  {children}
-                </strong>
-              ),
-              em: ({ children }) => (
-                <em className="italic text-gray-600 dark:text-gray-400">
-                  {children}
-                </em>
-              ),
-              hr: () => (
-                <hr className="my-6 border-indigo-200 dark:border-gray-600" />
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-indigo-300 dark:border-indigo-600 pl-4 my-4 italic text-gray-600 dark:text-gray-400">
-                  {children}
-                </blockquote>
-              ),
-              code: ({ children, ...props }) => {
-                const isInline = !props.className?.includes("language-");
-                return isInline ? (
-                  <code className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded text-sm">
+          <>
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => (
+                  <h1 className="text-2xl font-bold text-indigo-800 dark:text-indigo-300 mb-4">
                     {children}
-                  </code>
-                ) : (
-                  <pre className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto">
-                    <code className="text-sm text-gray-900 dark:text-gray-100">
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400 mb-3 mt-6">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-lg font-medium text-indigo-600 dark:text-indigo-400 mb-2 mt-4">
+                    {children}
+                  </h3>
+                ),
+                p: ({ children }) => (
+                  <p className="mb-3 text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {children}
+                  </p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc list-inside mb-3 space-y-1">
+                    {children}
+                  </ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal list-inside mb-3 space-y-1">
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => (
+                  <li className="text-gray-700 dark:text-gray-300 ml-2">
+                    {children}
+                  </li>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-indigo-800 dark:text-indigo-300">
+                    {children}
+                  </strong>
+                ),
+                em: ({ children }) => (
+                  <em className="italic text-gray-600 dark:text-gray-400">
+                    {children}
+                  </em>
+                ),
+                hr: () => (
+                  <hr className="my-6 border-indigo-200 dark:border-gray-600" />
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-indigo-300 dark:border-indigo-600 pl-4 my-4 italic text-gray-600 dark:text-gray-400">
+                    {children}
+                  </blockquote>
+                ),
+                code: ({ children, ...props }) => {
+                  const isInline = !props.className?.includes("language-");
+                  return isInline ? (
+                    <code className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded text-sm">
                       {children}
                     </code>
-                  </pre>
-                );
-              },
-            }}
-          >
-            {notes}
-          </ReactMarkdown>
+                  ) : (
+                    <pre className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto">
+                      <code className="text-sm text-gray-900 dark:text-gray-100">
+                        {children}
+                      </code>
+                    </pre>
+                  );
+                },
+              }}
+            >
+              {notes}
+            </ReactMarkdown>
+            <QASection contentHash={contentHash} materialId={materialId} />
+          </>
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
