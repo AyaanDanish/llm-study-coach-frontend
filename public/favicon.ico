@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background -->
+  <rect x="0" y="0" width="32" height="32" fill="#4f46e5" rx="4"/>
+  
+  <!-- Book -->
+  <rect x="8" y="12" width="8" height="12" fill="#ffffff" rx="1"/>
+  <rect x="16" y="12" width="8" height="12" fill="#f3f4f6" rx="1"/>
+  <rect x="15" y="12" width="2" height="12" fill="#6366f1"/>
+  
+  <!-- AI symbol -->
+  <circle cx="12" cy="8" r="3" fill="#fbbf24"/>
+  <circle cx="10.5" cy="7" r="0.5" fill="#f59e0b"/>
+  <circle cx="13.5" cy="7" r="0.5" fill="#f59e0b"/>
+  
+  <!-- Lines -->
+  <line x1="10" y1="16" x2="14" y2="16" stroke="#6b7280" stroke-width="0.5"/>
+  <line x1="10" y1="18" x2="13" y2="18" stroke="#6b7280" stroke-width="0.5"/>
+  <line x1="18" y1="16" x2="22" y2="16" stroke="#9ca3af" stroke-width="0.5"/>
+  <line x1="18" y1="18" x2="21" y2="18" stroke="#9ca3af" stroke-width="0.5"/>
+</svg>
