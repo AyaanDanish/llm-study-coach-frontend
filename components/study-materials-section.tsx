@@ -556,79 +556,19 @@ export default function StudyMaterialsSection({
             Download
           </Button>
         </div>
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-indigo-100 dark:border-gray-700 rounded-xl p-6 shadow-sm">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                {selectedMaterial.name.replace(/\.[^/.]+$/, "")}
-              </h2>
-              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                <span className="bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full">
-                  {selectedMaterial.subject}
-                </span>
-                <span>{formatFileSize(selectedMaterial.file_size)}</span>
-                <span>{formatDate(selectedMaterial.uploaded_at)}</span>
-              </div>
-            </div>
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-indigo-100 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {selectedMaterial.name.replace(/\.[^/.]+$/, "")}
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl shadow-sm border border-blue-100 dark:border-blue-800">
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-800 dark:to-indigo-800 p-2 rounded-full">
-                  <Clock
-                    className="text-blue-600 dark:text-blue-400"
-                    size={20}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Uploaded
-                  </p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatDate(selectedMaterial.uploaded_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl shadow-sm border border-green-100 dark:border-green-800">
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-800 dark:to-emerald-800 p-2 rounded-full">
-                  <FileText
-                    className="text-green-600 dark:text-green-400"
-                    size={20}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    File Size
-                  </p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatFileSize(selectedMaterial.file_size)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 p-4 rounded-xl shadow-sm border border-purple-100 dark:border-purple-800">
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-800 dark:to-fuchsia-800 p-2 rounded-full">
-                  <Brain
-                    className="text-purple-600 dark:text-purple-400"
-                    size={20}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Subject
-                  </p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {selectedMaterial.subject}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+            <span className="bg-indigo-100 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md">
+              {selectedMaterial.subject}
+            </span>
+            <span>{formatFileSize(selectedMaterial.file_size)}</span>
+            <span>{formatDate(selectedMaterial.uploaded_at)}</span>
           </div>
         </div>{" "}
         {/* Notes Section */}

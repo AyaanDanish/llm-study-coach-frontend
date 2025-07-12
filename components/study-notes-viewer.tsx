@@ -167,38 +167,35 @@ export default function StudyNotesViewer({
   }
 
   return (
-    <div className="space-y-4">
-      {" "}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium text-indigo-800 dark:text-indigo-300">
+    <div className="space-y-3">
+      {/* Compact header with inline timestamp and actions */}
+      <div className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-3">
+          <h3 className="text-base font-medium text-indigo-800 dark:text-indigo-300">
             Study Notes
           </h3>
           {generatedAt && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Generated on {new Date(generatedAt).toLocaleString()}
-            </p>
+            <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
+              {new Date(generatedAt).toLocaleDateString()}
+            </span>
           )}
         </div>
 
         {notes && (
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
               onClick={handleGenerateFlashcards}
               disabled={generatingFlashcards}
               variant="outline"
               size="sm"
-              className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30"
+              className="h-8 px-3 text-xs bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30"
             >
               {generatingFlashcards ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generate Flashcards
+                  <Zap className="h-3 w-3 mr-1" />
+                  Flashcards
                 </>
               )}
             </Button>
@@ -207,23 +204,23 @@ export default function StudyNotesViewer({
               disabled={generatingQuiz}
               variant="outline"
               size="sm"
-              className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30"
+              className="h-8 px-3 text-xs bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
             >
               {generatingQuiz ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
                 <>
-                  <Target className="h-4 w-4 mr-2" />
-                  Generate Quiz
+                  <Target className="h-3 w-3 mr-1" />
+                  Quiz
                 </>
               )}
             </Button>
           </div>
         )}
-      </div>{" "}
+      </div>
+
+      {notes && <QASection contentHash={contentHash} materialId={materialId} />}
+
       <div className="prose prose-indigo prose-lg max-w-none bg-white dark:bg-gray-800 p-6 rounded-xl border border-indigo-100 dark:border-gray-700">
         {notes ? (
           <>
@@ -300,7 +297,6 @@ export default function StudyNotesViewer({
             >
               {notes}
             </ReactMarkdown>
-            <QASection contentHash={contentHash} materialId={materialId} />
           </>
         ) : (
           <div className="text-center py-8">
