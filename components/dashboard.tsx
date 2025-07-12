@@ -285,6 +285,37 @@ export default function Dashboard({ user }: DashboardProps) {
   );
 }
 
+// Custom hook for study materials (moved outside component)
+function useStudyMaterials(userId: string) {
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMaterials() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("study_materials")
+        .select("*")
+        .eq("user_id", userId)
+        .order("uploaded_at", { ascending: false })
+        .limit(3);
+
+      if (error) console.error(error);
+      else setMaterials(data || []);
+
+      setLoading(false);
+    }
+
+    if (userId && userId !== "placeholder-user") {
+      fetchMaterials();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  return { materials, loading };
+}
+
 function OverviewContent({
   user,
   setCurrentView,
@@ -296,36 +327,6 @@ function OverviewContent({
   currentView: DashboardView;
   onMaterialSelect: (materialId: string) => void;
 }) {
-  function useStudyMaterials(userId: string) {
-    const [materials, setMaterials] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      async function fetchMaterials() {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("study_materials")
-          .select("*")
-          .eq("user_id", userId)
-          .order("uploaded_at", { ascending: false })
-          .limit(3);
-
-        if (error) console.error(error);
-        else setMaterials(data || []);
-
-        setLoading(false);
-      }
-
-      if (userId && userId !== "placeholder-user") {
-        fetchMaterials();
-      } else {
-        setLoading(false);
-      }
-    }, [userId]);
-
-    return { materials, loading };
-  }
-
   const { materials, loading } = useStudyMaterials(user.id);
 
   // Get real-time study time from timer context
@@ -347,6 +348,169 @@ function OverviewContent({
     flashcards: { current: 0, target: 0, percentage: 0 },
     quizPerformance: { average: 0, percentage: 0 },
   });
+
+  // Study tips array with 20 different tips
+  const allStudyTips = [
+    {
+      title: "Spaced Repetition",
+      description:
+        "Review your flashcards at increasing intervals to improve long-term retention.",
+      color: "amber",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Active Recall",
+      description:
+        "Test yourself on concepts rather than passively reading your notes.",
+      color: "blue",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Pomodoro Technique",
+      description:
+        "Study in focused 25-minute intervals with 5-minute breaks in between.",
+      color: "purple",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Feynman Technique",
+      description:
+        "Explain concepts in simple terms to identify gaps in your understanding.",
+      color: "green",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Mind Mapping",
+      description:
+        "Create visual diagrams to connect ideas and improve memory retention.",
+      color: "pink",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Study Environment",
+      description: "Find a quiet, well-lit space dedicated solely to studying.",
+      color: "indigo",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Sleep Schedule",
+      description:
+        "Get 7-9 hours of sleep to consolidate memories and improve focus.",
+      color: "cyan",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Eliminate Distractions",
+      description:
+        "Turn off notifications and put away devices while studying.",
+      color: "orange",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Practice Testing",
+      description:
+        "Take practice quizzes to identify weak areas and reinforce learning.",
+      color: "red",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Study Groups",
+      description:
+        "Collaborate with peers to gain different perspectives and explanations.",
+      color: "yellow",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Break Down Topics",
+      description: "Divide complex subjects into smaller, manageable chunks.",
+      color: "emerald",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Use Multiple Senses",
+      description:
+        "Combine reading, writing, listening, and visual aids for better retention.",
+      color: "violet",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Regular Reviews",
+      description:
+        "Schedule weekly reviews of previous material to maintain knowledge.",
+      color: "slate",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Set Clear Goals",
+      description:
+        "Define specific, measurable objectives for each study session.",
+      color: "rose",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Use Mnemonics",
+      description:
+        "Create memory aids like acronyms or rhymes for complex information.",
+      color: "lime",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Take Notes by Hand",
+      description:
+        "Writing notes manually can improve comprehension and memory.",
+      color: "teal",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Teach Others",
+      description:
+        "Explaining concepts to someone else reinforces your own learning.",
+      color: "sky",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Stay Hydrated",
+      description:
+        "Drink plenty of water to maintain cognitive function and focus.",
+      color: "blue",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Use Analogies",
+      description:
+        "Connect new information to familiar concepts for better understanding.",
+      color: "purple",
+      icon: "Lightbulb",
+    },
+    {
+      title: "Review Before Sleep",
+      description:
+        "Study important material before bed to enhance memory consolidation.",
+      color: "indigo",
+      icon: "Lightbulb",
+    },
+  ];
+
+  // State for current study tips (randomly selected)
+  const [currentStudyTips, setCurrentStudyTips] = useState<typeof allStudyTips>(
+    []
+  );
+
+  // Function to get 3 random study tips
+  const getRandomStudyTips = () => {
+    const shuffled = [...allStudyTips].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+  };
+
+  // Initialize random study tips on component mount
+  useEffect(() => {
+    setCurrentStudyTips(getRandomStudyTips());
+  }, []);
+
+  // Function to refresh study tips
+  const refreshStudyTips = () => {
+    setCurrentStudyTips(getRandomStudyTips());
+  };
 
   useEffect(() => {
     const loadStudyProgress = async () => {
@@ -730,67 +894,165 @@ function OverviewContent({
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-indigo-800 dark:text-indigo-300">
-            AI-Generated Study Tips
+            Study Tips
           </h2>
-          <button className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline">
+          <button
+            onClick={refreshStudyTips}
+            className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:underline"
+          >
             Refresh
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-xl shadow-sm border border-amber-100 dark:border-amber-800 transform transition-transform hover:scale-105">
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-800 dark:to-orange-800 p-1.5 rounded-lg">
-                <Lightbulb
-                  className="text-amber-500 dark:text-amber-400"
-                  size={18}
-                />
-              </div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                Spaced Repetition
-              </p>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Review your flashcards at increasing intervals to improve
-              long-term retention.
-            </p>
-          </div>
+          {currentStudyTips.map((tip, index) => {
+            // Define color mappings for consistent styling
+            const colorMap: Record<
+              string,
+              { bg: string; border: string; icon: string; iconBg: string }
+            > = {
+              amber: {
+                bg: "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20",
+                border: "border-amber-100 dark:border-amber-800",
+                icon: "text-amber-500 dark:text-amber-400",
+                iconBg:
+                  "bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-800 dark:to-orange-800",
+              },
+              blue: {
+                bg: "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20",
+                border: "border-blue-100 dark:border-blue-800",
+                icon: "text-blue-500 dark:text-blue-400",
+                iconBg:
+                  "bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-800 dark:to-indigo-800",
+              },
+              purple: {
+                bg: "bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20",
+                border: "border-purple-100 dark:border-purple-800",
+                icon: "text-purple-500 dark:text-purple-400",
+                iconBg:
+                  "bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-800 dark:to-fuchsia-800",
+              },
+              green: {
+                bg: "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20",
+                border: "border-green-100 dark:border-green-800",
+                icon: "text-green-500 dark:text-green-400",
+                iconBg:
+                  "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-800 dark:to-emerald-800",
+              },
+              pink: {
+                bg: "bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20",
+                border: "border-pink-100 dark:border-pink-800",
+                icon: "text-pink-500 dark:text-pink-400",
+                iconBg:
+                  "bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-800 dark:to-rose-800",
+              },
+              indigo: {
+                bg: "bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20",
+                border: "border-indigo-100 dark:border-indigo-800",
+                icon: "text-indigo-500 dark:text-indigo-400",
+                iconBg:
+                  "bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-800 dark:to-purple-800",
+              },
+              cyan: {
+                bg: "bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20",
+                border: "border-cyan-100 dark:border-cyan-800",
+                icon: "text-cyan-500 dark:text-cyan-400",
+                iconBg:
+                  "bg-gradient-to-br from-cyan-100 to-teal-100 dark:from-cyan-800 dark:to-teal-800",
+              },
+              orange: {
+                bg: "bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20",
+                border: "border-orange-100 dark:border-orange-800",
+                icon: "text-orange-500 dark:text-orange-400",
+                iconBg:
+                  "bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-800 dark:to-red-800",
+              },
+              red: {
+                bg: "bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20",
+                border: "border-red-100 dark:border-red-800",
+                icon: "text-red-500 dark:text-red-400",
+                iconBg:
+                  "bg-gradient-to-br from-red-100 to-pink-100 dark:from-red-800 dark:to-pink-800",
+              },
+              yellow: {
+                bg: "bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20",
+                border: "border-yellow-100 dark:border-yellow-800",
+                icon: "text-yellow-500 dark:text-yellow-400",
+                iconBg:
+                  "bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-800 dark:to-amber-800",
+              },
+              emerald: {
+                bg: "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20",
+                border: "border-emerald-100 dark:border-emerald-800",
+                icon: "text-emerald-500 dark:text-emerald-400",
+                iconBg:
+                  "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-800 dark:to-green-800",
+              },
+              violet: {
+                bg: "bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20",
+                border: "border-violet-100 dark:border-violet-800",
+                icon: "text-violet-500 dark:text-violet-400",
+                iconBg:
+                  "bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-800 dark:to-purple-800",
+              },
+              slate: {
+                bg: "bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/20 dark:to-gray-900/20",
+                border: "border-slate-100 dark:border-slate-800",
+                icon: "text-slate-500 dark:text-slate-400",
+                iconBg:
+                  "bg-gradient-to-br from-slate-100 to-gray-100 dark:from-slate-800 dark:to-gray-800",
+              },
+              rose: {
+                bg: "bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20",
+                border: "border-rose-100 dark:border-rose-800",
+                icon: "text-rose-500 dark:text-rose-400",
+                iconBg:
+                  "bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-800 dark:to-pink-800",
+              },
+              lime: {
+                bg: "bg-gradient-to-br from-lime-50 to-green-50 dark:from-lime-900/20 dark:to-green-900/20",
+                border: "border-lime-100 dark:border-lime-800",
+                icon: "text-lime-500 dark:text-lime-400",
+                iconBg:
+                  "bg-gradient-to-br from-lime-100 to-green-100 dark:from-lime-800 dark:to-green-800",
+              },
+              teal: {
+                bg: "bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20",
+                border: "border-teal-100 dark:border-teal-800",
+                icon: "text-teal-500 dark:text-teal-400",
+                iconBg:
+                  "bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-800 dark:to-cyan-800",
+              },
+              sky: {
+                bg: "bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20",
+                border: "border-sky-100 dark:border-sky-800",
+                icon: "text-sky-500 dark:text-sky-400",
+                iconBg:
+                  "bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-800 dark:to-blue-800",
+              },
+            };
 
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl shadow-sm border border-blue-100 dark:border-blue-800 transform transition-transform hover:scale-105">
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-800 dark:to-indigo-800 p-1.5 rounded-lg">
-                <Lightbulb
-                  className="text-blue-500 dark:text-blue-400"
-                  size={18}
-                />
-              </div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                Active Recall
-              </p>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Test yourself on concepts rather than passively reading your
-              notes.
-            </p>
-          </div>
+            const colors = colorMap[tip.color] || colorMap.blue; // fallback to blue
 
-          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 p-4 rounded-xl shadow-sm border border-purple-100 dark:border-purple-800 transform transition-transform hover:scale-105">
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-800 dark:to-fuchsia-800 p-1.5 rounded-lg">
-                <Lightbulb
-                  className="text-purple-500 dark:text-purple-400"
-                  size={18}
-                />
+            return (
+              <div
+                key={index}
+                className={`${colors.bg} p-4 rounded-xl shadow-sm border ${colors.border} transform transition-transform hover:scale-105`}
+              >
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className={`${colors.iconBg} p-1.5 rounded-lg`}>
+                    <Lightbulb className={`${colors.icon}`} size={18} />
+                  </div>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {tip.title}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {tip.description}
+                </p>
               </div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">
-                Pomodoro Technique
-              </p>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Study in focused 25-minute intervals with 5-minute breaks in
-              between.
-            </p>
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
