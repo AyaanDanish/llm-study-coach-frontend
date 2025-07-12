@@ -13,6 +13,11 @@ The **Study Coach App** is a web application designed to help users track their 
 
 ---
 
+## Deployment:
+The app has been deployed via Vercel and is available [here](https://llm-study-coach.vercel.app/).
+
+---
+
 ## Technologies Used
 
 - **Framework**: [Next.js](https://nextjs.org/)
