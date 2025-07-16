@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useTheme } from "@/contexts/ThemeContext";
 import GenerateQuizDialog from "./generate-quiz-dialog";
 import QASection from "./qa-section";
+import FlashcardSuccessModal from "./flashcard-success-modal";
 
 interface StudyNotesViewerProps {
   materialId: string;
@@ -38,6 +39,11 @@ export default function StudyNotesViewer({
   const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [flashcardSuccessModal, setFlashcardSuccessModal] = useState<{
+    isOpen: boolean;
+    count: number;
+    category: string;
+  }>({ isOpen: false, count: 0, category: "" });
 
   const fetchNotes = async () => {
     try {
@@ -87,8 +93,36 @@ export default function StudyNotesViewer({
       } = await supabase.auth.getUser();
       if (!user) {
         setError("Please log in to generate flashcards");
+        setGeneratingFlashcards(false);
         return;
       }
+
+      // Create a descriptive category based on subject and material name
+      let flashcardCategory = "Study Material"; // Default fallback
+
+      if (materialSubject && materialName) {
+        // Create format: "Subject - Topic"
+        const cleanName = materialName
+          .replace(/\.(pdf|docx?|txt)$/i, "")
+          .replace(/[_-]/g, " ")
+          .trim();
+        flashcardCategory = `${materialSubject} - ${cleanName}`;
+      } else if (materialSubject) {
+        flashcardCategory = materialSubject;
+      } else if (materialName) {
+        const cleanName = materialName
+          .replace(/\.(pdf|docx?|txt)$/i, "")
+          .replace(/[_-]/g, " ")
+          .trim();
+        flashcardCategory = cleanName;
+      }
+
+      console.log("Flashcard category generation:", {
+        materialSubject,
+        materialName,
+        flashcardCategory,
+      });
+
       const response = await fetch(
         `${
           process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
@@ -100,20 +134,29 @@ export default function StudyNotesViewer({
             "X-User-ID": user.id,
           },
           body: JSON.stringify({
-            category: "Study Material", // Default category
+            category: flashcardCategory,
           }),
         }
       );
 
       const data = await response.json();
+      console.log("Flashcard generation response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to generate flashcards");
       }
 
-      // Show success message (you might want to use a toast notification here)
-      alert(`Successfully generated ${data.total_saved} flashcards!`);
+      // Show success modal
+      const flashcardCount =
+        data.total_saved || data.count || data.flashcards?.length || 0;
+
+      setFlashcardSuccessModal({
+        isOpen: true,
+        count: flashcardCount,
+        category: flashcardCategory,
+      });
     } catch (err: any) {
+      console.error("Flashcard generation error:", err);
       setError(`Failed to generate flashcards: ${err.message}`);
     } finally {
       setGeneratingFlashcards(false);
@@ -195,7 +238,7 @@ export default function StudyNotesViewer({
               ) : (
                 <>
                   <Zap className="h-3 w-3 mr-1" />
-                  Flashcards
+                  Generate Flashcards
                 </>
               )}
             </Button>
@@ -207,11 +250,12 @@ export default function StudyNotesViewer({
               className="h-8 px-3 text-xs bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
             >
               {generatingQuiz ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+
+                <Loader2 className="h-3 w-3 animate-spin" /> 
               ) : (
                 <>
                   <Target className="h-3 w-3 mr-1" />
-                  Quiz
+                  Generate Quiz
                 </>
               )}
             </Button>
@@ -361,6 +405,14 @@ export default function StudyNotesViewer({
         contentHash={contentHash}
         materialName={materialName}
         materialSubject={materialSubject}
+      />
+      
+      <FlashcardSuccessModal
+        isOpen={flashcardSuccessModal.isOpen}
+        onClose={() => setFlashcardSuccessModal({ isOpen: false, count: 0, category: "" })}
+        flashcardCount={flashcardSuccessModal.count}
+        category={flashcardSuccessModal.category}
+        materialTitle={materialName || "Study Material"}
       />
     </div>
   );

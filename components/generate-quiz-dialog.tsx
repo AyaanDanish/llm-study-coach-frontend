@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Brain, Target, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import config from "@/lib/config";
+import { useToast } from "@/hooks/use-toast";
+import QuizSuccessModal from "@/components/quiz-success-modal";
 
 interface GenerateQuizDialogProps {
   isOpen: boolean;
@@ -38,6 +40,9 @@ export default function GenerateQuizDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [generationProgress, setGenerationProgress] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [generatedQuizData, setGeneratedQuizData] = useState<any>(null);
+  const { toast } = useToast();
 
   const handleGenerate = async () => {
     if (!quizTitle.trim()) {
@@ -105,12 +110,32 @@ export default function GenerateQuizDialog({
 
       setGenerationProgress("Quiz generated successfully!");
 
+      // Store quiz data for success modal
+      setGeneratedQuizData({
+        quiz_id: data.quiz_id,
+        title: quizTitle.trim(),
+        questions: data.questions,
+        questionCount: data.questions?.length || 5,
+      });
+
+      // Show success toast
+      toast({
+        title: "🎉 Quiz Generated!",
+        description: `"${quizTitle.trim()}" has been created with ${
+          data.questions?.length || 5
+        } questions. Click below to find it in the Quizzes section.`,
+        duration: 6000,
+      });
+
       // Reset form
       setQuizTitle("");
 
-      // Close dialog and refresh
-      onSuccess();
+      // Close dialog and show success modal
       onClose();
+      setShowSuccessModal(true);
+
+      // Call success callback
+      onSuccess();
     } catch (error: any) {
       console.error("Error generating quiz:", error);
       setError(error.message || "Failed to generate quiz. Please try again.");
@@ -129,105 +154,137 @@ export default function GenerateQuizDialog({
     }
   };
 
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    setGeneratedQuizData(null);
+  };
+
+  const handleViewQuiz = () => {
+    setShowSuccessModal(false);
+    setGeneratedQuizData(null);
+
+    // Show additional toast with navigation hint
+    toast({
+      title: "🧭 Find Your Quiz",
+      description:
+        "Navigate to the 'Quizzes' section in the sidebar to view and take your new quiz.",
+      duration: 7000,
+    });
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            Generate Quiz
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              Generate Quiz
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Study Material
-              </span>
-            </div>
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>{materialTitle}</strong> ({materialSubject})
-            </p>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              This will generate 5 multiple-choice questions based on your study
-              material
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="quiz-title">Quiz Title</Label>
-            <Input
-              id="quiz-title"
-              value={quizTitle}
-              onChange={(e) => setQuizTitle(e.target.value)}
-              placeholder="Enter a name for your quiz"
-              disabled={isGenerating}
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm text-red-800 dark:text-red-200">
-                  {error}
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Study Material
                 </span>
               </div>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>{materialTitle}</strong> ({materialSubject})
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                This will generate 5 multiple-choice questions based on your
+                study material
+              </p>
             </div>
-          )}
 
-          {generationProgress && (
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-indigo-600 dark:text-indigo-400" />
-                <span className="text-sm text-indigo-800 dark:text-indigo-200">
-                  {generationProgress}
-                </span>
+            <div className="space-y-2">
+              <Label htmlFor="quiz-title">Quiz Title</Label>
+              <Input
+                id="quiz-title"
+                value={quizTitle}
+                onChange={(e) => setQuizTitle(e.target.value)}
+                placeholder="Enter a name for your quiz"
+                disabled={isGenerating}
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm text-red-800 dark:text-red-200">
+                    {error}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Quiz Format
-            </h4>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              <li>• 5 multiple-choice questions</li>
-              <li>• 4 options per question</li>
-              <li>• 1 correct answer per question</li>
-              <li>• Questions based on your study material</li>
-            </ul>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={isGenerating}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleGenerate}
-            disabled={!quizTitle.trim() || isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Brain className="mr-2 h-4 w-4" />
-                Generate Quiz
-              </>
             )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+            {generationProgress && (
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-sm text-indigo-800 dark:text-indigo-200">
+                    {generationProgress}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Quiz Format
+              </h4>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                <li>• 5 multiple-choice questions</li>
+                <li>• 4 options per question</li>
+                <li>• 1 correct answer per question</li>
+                <li>• Questions based on your study material</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isGenerating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGenerate}
+              disabled={!quizTitle.trim() || isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Brain className="mr-2 h-4 w-4" />
+                  Generate Quiz
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Modal */}
+      {showSuccessModal && generatedQuizData && (
+        <QuizSuccessModal
+          isOpen={showSuccessModal}
+          onClose={handleSuccessModalClose}
+          onViewQuiz={handleViewQuiz}
+          quizTitle={generatedQuizData.title}
+          questionCount={generatedQuizData.questionCount}
+          materialTitle={materialTitle}
+        />
+      )}
+    </>
   );
 }

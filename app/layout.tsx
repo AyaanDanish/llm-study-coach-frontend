@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TimerProvider } from "@/contexts/TimerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5", // Indigo-600
@@ -51,6 +52,7 @@ export default function RootLayout({
         <ThemeProvider>
           <TimerProvider>{children}</TimerProvider>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

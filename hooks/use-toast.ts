@@ -144,6 +144,8 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
+  
+  console.log("Toast function called with:", { id, props, listenersCount: listeners.length });
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -163,6 +165,8 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+  
+  console.log("Toast added to state, new state:", memoryState);
 
   return {
     id: id,
@@ -182,7 +186,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // Remove the state dependency
 
   return {
     ...state,
