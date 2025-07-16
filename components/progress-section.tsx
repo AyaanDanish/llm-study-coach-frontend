@@ -232,23 +232,34 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
       return {
         totalStudyTime: Math.round((weeklyStats.totalStudyTime / 60) * 10) / 10, // Convert to hours, round to 1 decimal
         totalFlashcards: weeklyStats.totalFlashcards,
-        totalTopics: weeklyStats.studyDaysCompleted, // Use study days as topics
         averageQuizScore: Math.round(weeklyStats.averageQuizScore),
         daysStudied: weeklyStats.studyDaysCompleted,
         studyStreak: weeklyStats.currentStreak,
       };
+    } else if (timeRange === "day") {
+      // For day view, show only the current selected day's data
+      const currentDateString = currentDate.toISOString().split("T")[0];
+      const dayData = progressData.find(
+        (day) => day.date === currentDateString
+      );
+
+      return {
+        totalStudyTime: dayData?.studyTime || 0, // In minutes for day view
+        totalFlashcards: dayData?.flashcardsReviewed || 0,
+        averageQuizScore: dayData?.quizScore
+          ? Math.round(dayData.quizScore)
+          : 0,
+        daysStudied: (dayData?.studyTime || 0) > 0 ? 1 : 0,
+        studyStreak: weeklyStats.currentStreak,
+      };
     } else {
-      // For day and month views, use the progressData calculation
+      // For month view, use the progressData calculation
       const totalStudyTime = progressData.reduce(
         (sum, day) => sum + day.studyTime,
         0
       );
       const totalFlashcards = progressData.reduce(
         (sum, day) => sum + day.flashcardsReviewed,
-        0
-      );
-      const totalTopics = progressData.reduce(
-        (sum, day) => sum + day.topicsCompleted,
         0
       );
 
@@ -264,9 +275,8 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
           : 0;
 
       return {
-        totalStudyTime: Math.round((totalStudyTime / 60) * 10) / 10, // Convert to hours
+        totalStudyTime: Math.round((totalStudyTime / 60) * 10) / 10, // Convert to hours for month
         totalFlashcards,
-        totalTopics,
         averageQuizScore,
         daysStudied: progressData.filter((day) => day.studyTime > 0).length,
         studyStreak: weeklyStats.currentStreak,
@@ -324,7 +334,9 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
               Total Study Time
             </p>
             <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-              {summary.totalStudyTime} hrs
+              {timeRange === "day"
+                ? `${summary.totalStudyTime} min`
+                : `${summary.totalStudyTime} hrs`}
             </p>
           </div>
 
@@ -337,15 +349,6 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 p-4 rounded-xl shadow-sm border border-purple-100 dark:border-purple-800 transform transition-transform hover:scale-105">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Topics Completed
-            </p>
-            <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">
-              {summary.totalTopics}
-            </p>
-          </div>
-
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-xl shadow-sm border border-amber-100 dark:border-amber-800 transform transition-transform hover:scale-105">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Average Quiz Score
@@ -355,14 +358,16 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-4 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-800 transform transition-transform hover:scale-105">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Days Studied
-            </p>
-            <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">
-              {summary.daysStudied}
-            </p>
-          </div>
+          {timeRange !== "day" && (
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-4 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-800 transform transition-transform hover:scale-105">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Days Studied
+              </p>
+              <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">
+                {summary.daysStudied}
+              </p>
+            </div>
+          )}
 
           <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 p-4 rounded-xl shadow-sm border border-red-100 dark:border-red-800 transform transition-transform hover:scale-105">
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -531,9 +536,6 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
                   Flashcards
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">
-                  Topics
-                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-indigo-700 dark:text-indigo-300 uppercase tracking-wider rounded-tr-xl">
                   Quiz Score
                 </th>
@@ -590,9 +592,6 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {day.topicsCompleted}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {day.quizScore ? (
                       <div className="flex items-center">
                         <span className="px-2 py-1 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 text-amber-800 dark:text-amber-400 rounded-full text-xs">
@@ -613,112 +612,6 @@ export default function ProgressSection({ user }: ProgressSectionProps) {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-gray-700">
-        <h2 className="text-lg font-medium mb-6 text-indigo-800 dark:text-indigo-300">
-          Study Habits Analysis
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-sm">
-            <h3 className="text-md font-medium mb-3 text-indigo-700 dark:text-indigo-300">
-              Study Time Distribution
-            </h3>
-            <div className="h-48 bg-white dark:bg-gray-800 rounded-xl flex items-end justify-around p-4 border border-indigo-100 dark:border-gray-700">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-                (day, index) => {
-                  const height = [30, 45, 20, 80, 60, 25, 90][index];
-                  const gradientClass = [
-                    "from-blue-400 to-indigo-500",
-                    "from-indigo-400 to-purple-500",
-                    "from-purple-400 to-fuchsia-500",
-                    "from-fuchsia-400 to-pink-500",
-                    "from-pink-400 to-rose-500",
-                    "from-rose-400 to-red-500",
-                    "from-red-400 to-orange-500",
-                  ][index];
-
-                  return (
-                    <div key={day} className="flex flex-col items-center">
-                      <div
-                        className={`w-8 bg-gradient-to-t ${gradientClass} rounded-t-lg mb-2 shadow-md transform transition-all duration-300 hover:scale-110`}
-                        style={{ height: `${height}%` }}
-                      ></div>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {day}
-                      </span>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 shadow-sm">
-            <h3 className="text-md font-medium mb-3 text-blue-700 dark:text-blue-400">
-              Performance Trends
-            </h3>
-            <div className="h-48 bg-white dark:bg-gray-800 rounded-xl p-4 relative border border-blue-100 dark:border-gray-700">
-              <div className="absolute inset-0 p-4">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <defs>
-                    <linearGradient
-                      id="gradient1"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stopColor="#4f46e5" />
-                      <stop offset="100%" stopColor="#7c3aed" />
-                    </linearGradient>
-                    <linearGradient
-                      id="gradient2"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#059669" />
-                    </linearGradient>
-                  </defs>
-                  <polyline
-                    points="0,70 15,65 30,60 45,40 60,35 75,30 90,20"
-                    fill="none"
-                    stroke="url(#gradient1)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <polyline
-                    points="0,80 15,75 30,70 45,65 60,55 75,60 90,50"
-                    fill="none"
-                    stroke="url(#gradient2)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div className="absolute bottom-4 left-4 flex items-center space-x-4">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-indigo-500 mr-1"></div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Study Time
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Flashcards
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
