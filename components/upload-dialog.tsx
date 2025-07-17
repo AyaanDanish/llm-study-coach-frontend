@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabaseClient";
+import { blobUploadService } from "@/lib/blobUploadService";
 
 interface UploadDialogProps {
   isOpen: boolean;
@@ -90,22 +91,6 @@ export default function UploadDialog({
     setError("");
 
     try {
-      // Generate unique filename
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2)}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
-
-      // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("pdf-uploads")
-        .upload(filePath, selectedFile);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
       // Get user session for authentication
       const {
         data: { session },
@@ -114,45 +99,123 @@ export default function UploadDialog({
         throw new Error("Not authenticated");
       }
 
-      // Create form data to send to backend for hash generation
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("subject", subject.trim());
+      const fileSize = selectedFile.size;
+      const useBlobUpload = blobUploadService.shouldUseBlobUpload(fileSize);
 
-      // Send to backend to generate hash
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
-        }/api/generate-hash`,
-        {
-          method: "POST",
-          headers: {
-            "X-User-ID": session.user.id,
-          },
-          body: formData,
-        }
+      console.log(
+        `File size: ${formatFileSize(
+          fileSize
+        )}, Using blob upload: ${useBlobUpload}`
       );
 
-      const data = await response.json();
+      let contentHash: string;
+      let filePath: string | null = null;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate content hash");
+      if (useBlobUpload) {
+        // For large files (>4MB), use blob upload workflow
+        console.log("Using blob upload workflow for large file...");
+
+        // Upload to blob first
+        const uploadResult = await blobUploadService.uploadFileToBlob(
+          selectedFile,
+          session.user.id
+        );
+        if (!uploadResult.success || !uploadResult.blob_url) {
+          throw new Error(uploadResult.error || "Failed to upload to blob");
+        }
+
+        // Generate hash from blob
+        const hashResult = await blobUploadService.generateHashFromBlob(
+          uploadResult.blob_url,
+          session.user.id
+        );
+
+        if (!hashResult.success || !hashResult.content_hash) {
+          throw new Error(
+            hashResult.error || "Failed to generate content hash"
+          );
+        }
+
+        contentHash = hashResult.content_hash;
+        // Store blob URL for later use
+        filePath = uploadResult.blob_url;
+      } else {
+        // For smaller files (<4MB), use traditional Supabase storage upload
+        console.log("Using traditional upload workflow for smaller file...");
+
+        // Generate unique filename
+        const fileExt = selectedFile.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2)}.${fileExt}`;
+        const supabaseFilePath = `${userId}/${fileName}`;
+
+        // Upload file to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("pdf-uploads")
+          .upload(supabaseFilePath, selectedFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Create form data to send to backend for hash generation
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        // Send to backend to generate hash
+        const response = await fetch(
+          `${
+            process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000"
+          }/api/generate-hash`,
+          {
+            method: "POST",
+            headers: {
+              "X-User-ID": session.user.id,
+            },
+            body: formData,
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to generate content hash");
+        }
+
+        contentHash = data.content_hash;
+        filePath = uploadData.path;
       }
 
       // Save file metadata to database with the generated hash
-      const { error: dbError } = await supabase.from("study_materials").insert({
+      const materialData: any = {
         name: selectedFile.name,
         subject: subject.trim(),
-        file_path: uploadData.path,
         file_size: selectedFile.size,
         user_id: userId,
         file_type: "pdf",
-        content_hash: data.content_hash, // Use the hash generated by the backend
-      });
+        content_hash: contentHash,
+        is_blob_upload: useBlobUpload,
+      };
+
+      if (useBlobUpload) {
+        // For blob uploads, store the blob URL
+        materialData.blob_url = filePath;
+        materialData.file_path = `blob:${selectedFile.name}`; // Placeholder path for blob files
+      } else {
+        // For traditional uploads, store the Supabase storage path
+        materialData.file_path = filePath;
+      }
+
+      const { error: dbError } = await supabase
+        .from("study_materials")
+        .insert(materialData);
 
       if (dbError) {
         throw dbError;
       }
+
+      console.log("Upload completed successfully!");
 
       // Reset form and close dialog
       setSelectedFile(null);
@@ -245,7 +308,8 @@ export default function UploadDialog({
                       </span>
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports PDF files up to 10MB
+                      Supports PDF files up to 500MB (large files use optimized
+                      upload)
                     </p>
                   </div>
                 </div>
@@ -263,6 +327,13 @@ export default function UploadDialog({
                       </p>
                       <p className="text-sm text-gray-500">
                         {formatFileSize(selectedFile.size)}
+                      </p>
+                      <p className="text-xs text-blue-600 font-medium">
+                        {blobUploadService.shouldUseBlobUpload(
+                          selectedFile.size
+                        )
+                          ? "⚡ Large file - using optimized blob upload"
+                          : "📁 Standard upload"}
                       </p>
                     </div>
                   </div>

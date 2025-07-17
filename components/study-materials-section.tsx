@@ -18,7 +18,10 @@ import {
   Trash2,
   RefreshCw,
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase, type StudyMaterial } from "@/lib/supabaseClient";
+import { blobUploadService } from "@/lib/blobUploadService";
+import config from "@/lib/config";
 import UploadDialog from "./upload-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -252,28 +255,6 @@ export default function StudyMaterialsSection({
         );
       }
 
-      // Get the file from Supabase storage
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from("pdf-uploads")
-        .download(material.file_path);
-
-      if (downloadError) {
-        console.error("Error downloading file:", downloadError);
-        throw new Error(`Failed to download file: ${downloadError.message}`);
-      }
-
-      console.log("File downloaded successfully");
-
-      // Create form data
-      const formData = new FormData();
-      formData.append(
-        "file",
-        fileData,
-        material.file_path.split("/").pop() || material.name
-      );
-      formData.append("subject", material.subject);
-      formData.append("content_hash", material.content_hash);
-
       // Get user session
       const {
         data: { session },
@@ -283,31 +264,135 @@ export default function StudyMaterialsSection({
         throw new Error("You must be logged in to generate notes");
       }
 
-      console.log("Sending file to backend for processing...");
-      const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://127.0.0.1:5000";
+      console.log("Generating notes for material...");
+      const backendUrl = config.apiUrl;
       console.log("Backend URL:", backendUrl);
 
-      // Send to backend
-      const response = await fetch(`${backendUrl}/api/process-pdf`, {
-        method: "POST",
-        headers: {
-          "X-User-ID": session.user.id,
-        },
-        body: formData,
-      });
+      // Check if this is a blob upload or traditional upload
+      const isBlobUpload = (material as any).is_blob_upload === true;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Backend error:", errorData);
-        throw new Error(
-          errorData.error ||
-            `Server error: ${response.status} ${response.statusText}`
+      if (isBlobUpload) {
+        console.log("Processing blob-uploaded file...");
+
+        // For blob uploads, we have the blob URL stored
+        const blobUrl = (material as any).blob_url;
+        if (!blobUrl) {
+          throw new Error(
+            "Blob URL not found for blob-uploaded file. Please re-upload."
+          );
+        }
+
+        // Process using blob workflow
+        const processResult = await blobUploadService.processPdfFromBlob(
+          blobUrl,
+          material.subject,
+          material.content_hash,
+          session.user.id
         );
-      }
 
-      const data = await response.json();
-      console.log("Notes generated successfully:", data);
+        if (!processResult.success) {
+          throw new Error(
+            processResult.error || "Failed to process PDF from blob"
+          );
+        }
+
+        console.log("Notes generated successfully using blob workflow");
+      } else {
+        console.log("Processing traditionally uploaded file...");
+        // Get the file from Supabase storage
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from("pdf-uploads")
+          .download(material.file_path);
+
+        if (downloadError) {
+          console.error("Error downloading file:", downloadError);
+          throw new Error(`Failed to download file: ${downloadError.message}`);
+        }
+
+        console.log("File downloaded successfully");
+
+        // Check file size to determine processing method
+        const fileSize = fileData.size;
+        const useBlobProcessing =
+          blobUploadService.shouldUseBlobUpload(fileSize);
+
+        if (useBlobProcessing) {
+          console.log("File is large, using blob processing workflow...");
+
+          // Upload file to blob for processing
+          const uploadResult = await blobUploadService.uploadFileToBlob(
+            new File(
+              [fileData],
+              material.file_path.split("/").pop() || material.name,
+              {
+                type: "application/pdf",
+              }
+            ),
+            session.user.id
+          );
+
+          if (!uploadResult.success || !uploadResult.blob_url) {
+            throw new Error(
+              uploadResult.error ||
+                "Failed to upload file to blob for processing"
+            );
+          }
+
+          // Process using blob workflow
+          const processResult = await blobUploadService.processPdfFromBlob(
+            uploadResult.blob_url,
+            material.subject,
+            material.content_hash,
+            session.user.id
+          );
+
+          if (!processResult.success) {
+            throw new Error(
+              processResult.error || "Failed to process PDF from blob"
+            );
+          }
+
+          console.log("Notes generated successfully using blob workflow");
+        } else {
+          console.log(
+            "File is small, using traditional processing workflow..."
+          );
+
+          // Create form data
+          const formData = new FormData();
+          formData.append(
+            "file",
+            fileData,
+            material.file_path.split("/").pop() || material.name
+          );
+          formData.append("subject", material.subject);
+          formData.append("content_hash", material.content_hash);
+
+          // Send to backend using traditional endpoint
+          const response = await fetch(`${backendUrl}/api/process-pdf`, {
+            method: "POST",
+            headers: {
+              "X-User-ID": session.user.id,
+            },
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Backend error:", errorData);
+            throw new Error(
+              errorData.error ||
+                `Server error: ${response.status} ${response.statusText}`
+            );
+          }
+
+          const data = await response.json();
+          console.log(
+            "Notes generated successfully using traditional workflow:",
+            data
+          );
+        }
+      }
 
       // Refresh the materials list to get updated data
       await fetchMaterials();

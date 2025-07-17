@@ -25,4 +25,6 @@ export type StudyMaterial = {
   user_id: string
   file_type: string
   content_hash?: string  // Optional since it may not exist for older uploads
+  is_blob_upload?: boolean  // Flag to indicate if this was uploaded via blob storage
+  blob_url?: string  // URL for blob-stored files
 }
