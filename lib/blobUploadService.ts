@@ -38,33 +38,56 @@ export class BlobUploadService {
   }
 
   /**
-   * Upload file to Vercel Blob storage
-   * This is the first step for large file uploads
+   * Upload file to Vercel Blob storage using direct upload
+   * This bypasses the backend to avoid 4.5MB request limit
    */
   async uploadFileToBlob(file: File, userId: string): Promise<BlobUploadResult> {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(`${this.baseUrl}/api/upload-to-blob`, {
+      // Step 1: Get signed upload URL from backend
+      const urlResponse = await fetch(`${this.baseUrl}/api/get-blob-upload-url`, {
         method: 'POST',
-        headers: this.getHeaders(userId),
-        body: formData,
+        headers: this.getJsonHeaders(userId),
+        body: JSON.stringify({
+          filename: file.name,
+          content_type: file.type || 'application/pdf'
+        })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+      if (!urlResponse.ok) {
+        const errorData = await urlResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to get upload URL: ${urlResponse.statusText}`);
       }
 
-      const result = await response.json();
+      const uploadInfo = await urlResponse.json();
+
+      // Step 2: Upload directly to Vercel Blob
+      const uploadResponse = await fetch(uploadInfo.upload_url, {
+        method: uploadInfo.method,
+        headers: uploadInfo.headers,
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Direct upload failed: ${uploadResponse.status} - ${uploadResponse.statusText}`);
+      }
+
+      // Step 3: Get the blob URL from response or use expected URL
+      let blobUrl;
+      try {
+        const responseData = await uploadResponse.json();
+        blobUrl = responseData.url || uploadInfo.expected_blob_url;
+      } catch {
+        // If response is not JSON, use the expected URL
+        blobUrl = uploadInfo.expected_blob_url;
+      }
+
       return {
         success: true,
-        blob_url: result.blob_url,
-        filename: result.filename,
+        blob_url: blobUrl,
+        filename: file.name,
       };
     } catch (error: any) {
-      console.error('Blob upload error:', error);
+      console.error('Direct blob upload error:', error);
       return {
         success: false,
         error: error.message || 'Failed to upload file to blob storage',
