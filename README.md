@@ -128,7 +128,7 @@ Ensure you have the following installed on your system:
    ```
 
 3. **Backend Setup** (Required):
-   Make sure the backend API is running on `http://localhost:5000`. See the [backend repository](../llm-study-coach-backend) for setup instructions.
+   Make sure the backend API is running on `http://localhost:5000`. See the [backend repository](https://git.imp.fu-berlin.de/syedayaad01/llm-study-coach-backend/) for setup instructions.
 
 ---
 
